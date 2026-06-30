@@ -472,6 +472,9 @@ button {
 }
 
 .combo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 700;
   color: #b45309;
   background: #fef3c7;

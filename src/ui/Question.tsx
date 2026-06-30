@@ -2,7 +2,7 @@
 // spelscore en combo bij. In oefenmodus volgt directe feedback met uitleg; in
 // testmodus gaat het meteen door. Halverwege verschijnt een motiverend feit.
 
-import { X } from 'lucide-react';
+import { Flame, X } from 'lucide-react';
 import type { Category, Mode, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { useSession } from '../state/useSession';
@@ -52,7 +52,11 @@ export function Question({ category, mode, onComplete, onQuit }: Props) {
 
       <div className="score-row">
         <span className="score-badge">{score} punten</span>
-        {streak >= 2 && <span className="combo-badge">{streak}x op rij</span>}
+        {streak >= 2 && (
+          <span className="combo-badge" title="Goede antwoorden achter elkaar">
+            <Flame size={15} /> {streak} goed op rij
+          </span>
+        )}
       </div>
 
       <div className="progress-bar" aria-hidden>
