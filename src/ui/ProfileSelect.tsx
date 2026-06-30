@@ -2,6 +2,7 @@
 // verschillende personen op dit apparaat. Ook export/import van voortgang.
 
 import { useRef, useState } from 'react';
+import { Download, Trash2, Upload } from 'lucide-react';
 import type { Profile } from '../engine/types';
 import { createProfile, deleteProfile, listProfiles } from '../storage/profiles';
 import { downloadExport, importFromJson } from '../storage/transfer';
@@ -58,8 +59,8 @@ export function ProfileSelect({ onSelect }: Props) {
               <span className="profile-name">{p.name}</span>
               <span className="muted">{p.history.length} sessies</span>
             </button>
-            <button className="delete-button" onClick={() => handleDelete(p)} aria-label={`Verwijder ${p.name}`}>
-              🗑
+            <button className="icon-button delete-button" onClick={() => handleDelete(p)} aria-label={`Verwijder ${p.name}`}>
+              <Trash2 size={18} />
             </button>
           </li>
         ))}
@@ -79,8 +80,12 @@ export function ProfileSelect({ onSelect }: Props) {
       </div>
 
       <div className="transfer">
-        <button className="link-button" onClick={downloadExport}>Voortgang exporteren</button>
-        <button className="link-button" onClick={() => fileInput.current?.click()}>Voortgang importeren</button>
+        <button className="btn" onClick={downloadExport}>
+          <Download size={18} /> Exporteren
+        </button>
+        <button className="btn" onClick={() => fileInput.current?.click()}>
+          <Upload size={18} /> Importeren
+        </button>
         <input
           ref={fileInput}
           type="file"

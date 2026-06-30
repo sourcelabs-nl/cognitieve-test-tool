@@ -3,6 +3,7 @@
 // met vorige sessies, en een "Wist je dat..."-feit.
 
 import { useMemo } from 'react';
+import { BarChart3, Home, Trophy } from 'lucide-react';
 import type { Profile, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { bestScoreForCategory, compareToPrevious, formatDateTime } from '../storage/history';
@@ -93,9 +94,15 @@ export function Results({ result, profile, onRetry, onHome, onShowProgress, onSh
 
       <div className="footer-actions">
         <button className="primary" onClick={onRetry}>Nog een keer oefenen</button>
-        <button className="link-button" onClick={onShowLeaderboard}>Ranglijst</button>
-        <button className="link-button" onClick={onShowProgress}>Bekijk mijn voortgang</button>
-        <button className="link-button" onClick={onHome}>Terug naar start</button>
+        <button className="btn" onClick={onShowLeaderboard}>
+          <Trophy size={18} /> Ranglijst
+        </button>
+        <button className="btn" onClick={onShowProgress}>
+          <BarChart3 size={18} /> Voortgang
+        </button>
+        <button className="btn" onClick={onHome}>
+          <Home size={18} /> Start
+        </button>
       </div>
     </section>
   );

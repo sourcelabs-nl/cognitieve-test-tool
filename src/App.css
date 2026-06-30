@@ -52,13 +52,48 @@ button {
   cursor: not-allowed;
 }
 
-.link-button {
-  background: none;
-  border: none;
-  color: var(--accent);
-  padding: 4px;
+/* Standaardknop: omlijnd, icoon + tekst (zie conventie in CLAUDE.md) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+  border-radius: 10px;
   font-size: 15px;
-  text-decoration: underline;
+  font-weight: 500;
+}
+
+.btn:hover,
+.btn:active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.btn svg {
+  flex: 0 0 auto;
+}
+
+/* Omlijnde icoonknop zonder tekst, voor compacte rij-acties (bv. verwijderen) */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 10px;
+  color: var(--text);
+}
+
+.icon-button:hover,
+.icon-button:active {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* Profielen */
@@ -537,9 +572,13 @@ button {
   }
 
   .mode-toggle,
-  .category-grid,
-  .options {
+  .category-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* antwoordopties blijven een 2x2 raster, alleen compacter */
+  .options {
+    gap: 10px;
   }
 
   /* korte getallen: drie kolommen blijven prima passen */
@@ -564,7 +603,8 @@ button {
   }
 
   .option {
-    padding: 18px 16px; /* comfortabel tap-target */
+    padding: 13px 10px; /* compacter, blijft goed aantikbaar */
+    font-size: 16px;
   }
 
   .footer-actions {

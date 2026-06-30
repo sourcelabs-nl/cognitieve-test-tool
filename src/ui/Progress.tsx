@@ -1,6 +1,7 @@
 // Voortgangsscherm: per categorie het verloop van de eind-niveauschatting over
 // de sessies heen, met een korte samenvatting (beste niveau, aantal sessies).
 
+import { ArrowLeft } from 'lucide-react';
 import type { Category, Profile } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { bestScoreForCategory, formatDateTime, resultsForCategory } from '../storage/history';
@@ -22,7 +23,9 @@ export function Progress({ profile, onBack }: Props) {
     <section className="screen">
       <header className="screen-header">
         <h1>Voortgang van {profile.name}</h1>
-        <button className="link-button" onClick={onBack}>terug</button>
+        <button className="btn" onClick={onBack}>
+          <ArrowLeft size={18} /> Terug
+        </button>
       </header>
 
       {sections.length === 0 && (

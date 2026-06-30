@@ -2,6 +2,7 @@
 // spelscore en combo bij. In oefenmodus volgt directe feedback met uitleg; in
 // testmodus gaat het meteen door. Halverwege verschijnt een motiverend feit.
 
+import { X } from 'lucide-react';
 import type { Category, Mode, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { useSession } from '../state/useSession';
@@ -44,7 +45,9 @@ export function Question({ category, mode, onComplete, onQuit }: Props) {
     <section className="screen question-screen">
       <header className="screen-header">
         <span className="muted">{categoryLabels[category]} · {mode === 'practice' ? 'Oefenen' : 'Test'}</span>
-        <button className="link-button" onClick={onQuit}>stoppen</button>
+        <button className="btn" onClick={onQuit}>
+          <X size={18} /> Stoppen
+        </button>
       </header>
 
       <div className="score-row">

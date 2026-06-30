@@ -2,6 +2,7 @@
 // filteren per categorie of over alle categorieen.
 
 import { useMemo, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import type { Category } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { getLeaderboard, type LeaderboardFilter } from '../storage/leaderboard';
@@ -29,7 +30,9 @@ export function Leaderboard({ highlightName, onBack }: Props) {
     <section className="screen">
       <header className="screen-header">
         <h1>Ranglijst</h1>
-        <button className="link-button" onClick={onBack}>terug</button>
+        <button className="btn" onClick={onBack}>
+          <ArrowLeft size={18} /> Terug
+        </button>
       </header>
 
       <div className="filter-row">
