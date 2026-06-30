@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { Category, Mode, Profile, SessionResult } from './engine/types';
 import { addResult, startEstimateForCategory } from './storage/history';
-import { getProfile } from './storage/profiles';
+import { getProfile, setAvatar } from './storage/profiles';
 import { ProfileSelect } from './ui/ProfileSelect';
 import { CategorySelect } from './ui/CategorySelect';
 import { SessionIntro } from './ui/SessionIntro';
@@ -45,6 +45,12 @@ export default function App() {
     setScreen('intro');
   };
 
+  const handleChangeAvatar = (avatarId: string) => {
+    if (!profile) return;
+    const updated = setAvatar(profile.id, avatarId);
+    if (updated) setProfile(updated);
+  };
+
   const handleComplete = (result: SessionResult) => {
     if (!profile) return;
     const updated = addResult(profile.id, result) ?? getProfile(profile.id) ?? profile;
@@ -65,6 +71,7 @@ export default function App() {
           onStart={handleStart}
           onShowProgress={() => setScreen('progress')}
           onShowLeaderboard={() => setScreen('leaderboard')}
+          onChangeAvatar={handleChangeAvatar}
           onSwitchProfile={() => {
             setProfile(null);
             setScreen('profile');

@@ -26,6 +26,17 @@ export function createProfile(name: string, avatar?: string): Profile {
   return profile;
 }
 
+// Wijzigt de avatar van een bestaand profiel. Geeft het bijgewerkte profiel
+// terug, of undefined als het niet bestaat.
+export function setAvatar(id: string, avatar: string): Profile | undefined {
+  const store = loadStore();
+  const profile = store.profiles.find((p) => p.id === id);
+  if (!profile) return undefined;
+  profile.avatar = avatar;
+  saveStore(store);
+  return profile;
+}
+
 export function deleteProfile(id: string): void {
   const store = loadStore();
   store.profiles = store.profiles.filter((p) => p.id !== id);

@@ -7,7 +7,7 @@ import type { Profile } from '../engine/types';
 import { createProfile, deleteProfile, listProfiles } from '../storage/profiles';
 import { downloadExport, importFromJson } from '../storage/transfer';
 import { AVATARS } from './avatarData';
-import { Avatar } from './avatars';
+import { Avatar, AvatarPicker } from './avatars';
 
 interface Props {
   onSelect: (profile: Profile) => void;
@@ -73,20 +73,7 @@ export function ProfileSelect({ onSelect }: Props) {
       </ul>
 
       <h2>Nieuw profiel</h2>
-      <div className="avatar-picker">
-        {AVATARS.map((a) => (
-          <button
-            key={a.id}
-            className={`avatar-choice ${avatar === a.id ? 'selected' : ''}`}
-            onClick={() => setAvatar(a.id)}
-            aria-label={a.label}
-            aria-pressed={avatar === a.id}
-            title={a.label}
-          >
-            <Avatar id={a.id} size={44} />
-          </button>
-        ))}
-      </div>
+      <AvatarPicker value={avatar} onChange={setAvatar} />
       <div className="new-profile">
         <input
           type="text"

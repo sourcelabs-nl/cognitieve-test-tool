@@ -1,16 +1,18 @@
 // Keuzescherm: categorie en modus (oefenen met feedback, of test zonder).
 
 import { useState } from 'react';
-import { BarChart3, RefreshCw, Trophy } from 'lucide-react';
+import { BarChart3, Pencil, RefreshCw, Trophy } from 'lucide-react';
 import type { Category, Mode, Profile } from '../engine/types';
 import { categoryLabels } from '../generators';
-import { Avatar } from './avatars';
+import { Avatar, AvatarPicker } from './avatars';
+import { AVATARS } from './avatarData';
 
 interface Props {
   profile: Profile;
   onStart: (category: Category, mode: Mode) => void;
   onShowProgress: () => void;
   onShowLeaderboard: () => void;
+  onChangeAvatar: (avatarId: string) => void;
   onSwitchProfile: () => void;
 }
 
@@ -21,8 +23,16 @@ const categories: { value: Category; description: string }[] = [
   { value: 'mixed', description: 'Een mix van alle categorieen.' },
 ];
 
-export function CategorySelect({ profile, onStart, onShowProgress, onShowLeaderboard, onSwitchProfile }: Props) {
+export function CategorySelect({
+  profile,
+  onStart,
+  onShowProgress,
+  onShowLeaderboard,
+  onChangeAvatar,
+  onSwitchProfile,
+}: Props) {
   const [mode, setMode] = useState<Mode>('practice');
+  const [showPanel, setShowPanel] = useState(false);
 
   return (
     <section className="screen">
@@ -30,16 +40,27 @@ export function CategorySelect({ profile, onStart, onShowProgress, onShowLeaderb
         <h1 className="greeting">
           <button
             className="avatar-button"
-            onClick={onSwitchProfile}
-            aria-label="Profiel wisselen"
-            title="Profiel wisselen"
+            onClick={() => setShowPanel((v) => !v)}
+            aria-label="Profiel en avatar"
+            aria-expanded={showPanel}
+            title="Avatar wijzigen of van profiel wisselen"
           >
             <Avatar id={profile.avatar} size={40} />
-            <span className="avatar-switch-badge"><RefreshCw size={11} /></span>
+            <span className="avatar-switch-badge"><Pencil size={10} /></span>
           </button>
           Hallo, {profile.name}
         </h1>
       </header>
+
+      {showPanel && (
+        <div className="profile-panel">
+          <p className="muted">Kies je avatar</p>
+          <AvatarPicker value={profile.avatar ?? AVATARS[0].id} onChange={onChangeAvatar} />
+          <button className="btn" onClick={onSwitchProfile}>
+            <RefreshCw size={18} /> Wissel van profiel
+          </button>
+        </div>
+      )}
 
       <h2>Modus</h2>
       <div className="mode-toggle">
