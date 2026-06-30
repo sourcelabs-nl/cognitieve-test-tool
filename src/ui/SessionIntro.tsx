@@ -5,12 +5,12 @@
 // Daarna begint de echte sessie.
 
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Play } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Info, Play } from 'lucide-react';
 import type { Category, Mode } from '../engine/types';
 import { categoryLabels, generate } from '../generators';
 import { levelForEstimate } from '../engine/adaptive';
 import { levelLabel } from '../engine/levels';
-import { LevelInfo } from './LevelInfo';
+import { LevelExplanation } from './LevelInfo';
 import { SpeakButton } from './SpeakButton';
 import { toSpoken } from './speech';
 
@@ -25,6 +25,7 @@ interface Props {
 
 export function SessionIntro({ category, mode, startEstimate, isReturning, onStart, onBack }: Props) {
   const [step, setStep] = useState<'level' | 'warmup'>('level');
+  const [infoOpen, setInfoOpen] = useState(false);
 
   // Een eenvoudige warming-up: vaste, lage moeilijkheid en telt niet mee.
   const [example] = useState(() => generate(category, 1, 0));
@@ -46,7 +47,7 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
           <span className="start-level-label">Je start op niveau</span>
           <span className="start-level-main">
             <span className="start-level-value">{startLevel}</span>
-            <span className="start-level-band">{levelLabel(startLevel)}</span>
+            <span className="start-level-band">(dat is {levelLabel(startLevel)})</span>
           </span>
           <span className="muted">
             {isReturning
@@ -55,13 +56,16 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
           </span>
         </div>
 
-        <LevelInfo />
-
         <div className="footer-actions">
+          <button className="btn" onClick={() => setInfoOpen((v) => !v)} aria-expanded={infoOpen}>
+            <Info size={18} /> Hoe werkt mijn niveau?
+          </button>
           <button className="primary" onClick={() => setStep('warmup')}>
             Verder <ArrowRight size={18} />
           </button>
         </div>
+
+        {infoOpen && <LevelExplanation />}
       </section>
     );
   }
