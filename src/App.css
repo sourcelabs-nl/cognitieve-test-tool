@@ -39,6 +39,10 @@ button {
 }
 
 .primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   background: var(--accent);
   color: #fff;
   border: none;
@@ -589,6 +593,61 @@ button {
 .leaderboard .lb-score {
   font-weight: 700;
   color: var(--accent);
+}
+
+/* Introscherm: startniveau */
+.start-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(79, 70, 229, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  margin: 12px 0;
+  text-align: center;
+}
+
+.start-level-label {
+  font-size: 15px;
+  opacity: 0.8;
+}
+
+.start-level-value {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+/* Uitleg-knop + tekst */
+.level-info {
+  margin: 12px 0;
+}
+
+.level-info-text {
+  margin-top: 10px;
+  font-size: 15px;
+  background: rgba(79, 70, 229, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+/* Tussentijdse niveau-melding */
+.levelup-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  font-weight: 700;
+  color: var(--good);
+  background: var(--good-soft);
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
 }
 
 /* PWA-update melding */

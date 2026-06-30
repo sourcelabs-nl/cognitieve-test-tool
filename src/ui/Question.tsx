@@ -2,7 +2,7 @@
 // spelscore en combo bij. In oefenmodus volgt directe feedback met uitleg; in
 // testmodus gaat het meteen door. Halverwege verschijnt een motiverend feit.
 
-import { Flame, X } from 'lucide-react';
+import { Flame, TrendingUp, X } from 'lucide-react';
 import type { Category, Mode, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { useSession } from '../state/useSession';
@@ -10,13 +10,14 @@ import { useSession } from '../state/useSession';
 interface Props {
   category: Category;
   mode: Mode;
+  startEstimate?: number;
   onComplete: (result: SessionResult) => void;
   onQuit: () => void;
 }
 
-export function Question({ category, mode, onComplete, onQuit }: Props) {
-  const { item, feedback, tip, score, streak, itemNumber, totalItems, submitAnswer, proceed, dismissTip, isLastQuestion } =
-    useSession({ category, mode, onComplete });
+export function Question({ category, mode, startEstimate, onComplete, onQuit }: Props) {
+  const { item, feedback, tip, score, streak, levelUp, itemNumber, totalItems, submitAnswer, proceed, dismissTip, isLastQuestion } =
+    useSession({ category, mode, startEstimate, onComplete });
 
   const progress = Math.round(((itemNumber - 1) / totalItems) * 100);
 
@@ -63,6 +64,12 @@ export function Question({ category, mode, onComplete, onQuit }: Props) {
         <div className="progress-fill" style={{ width: `${progress}%` }} />
       </div>
       <p className="muted progress-text">Vraag {itemNumber} van {totalItems}</p>
+
+      {levelUp && (
+        <div className="levelup-banner" role="status">
+          <TrendingUp size={18} /> Niveau {levelUp} bereikt!
+        </div>
+      )}
 
       <div className="prompt">
         {item.prompt.split('\n').map((line, i) => (

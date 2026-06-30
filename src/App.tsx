@@ -3,10 +3,11 @@
 
 import { useState } from 'react';
 import type { Category, Mode, Profile, SessionResult } from './engine/types';
-import { addResult } from './storage/history';
+import { addResult, startEstimateForCategory } from './storage/history';
 import { getProfile } from './storage/profiles';
 import { ProfileSelect } from './ui/ProfileSelect';
 import { CategorySelect } from './ui/CategorySelect';
+import { SessionIntro } from './ui/SessionIntro';
 import { Question } from './ui/Question';
 import { Results } from './ui/Results';
 import { Progress } from './ui/Progress';
@@ -14,11 +15,13 @@ import { Leaderboard } from './ui/Leaderboard';
 import { PwaUpdater } from './ui/PwaUpdater';
 import './App.css';
 
-type Screen = 'profile' | 'category' | 'session' | 'results' | 'progress' | 'leaderboard';
+type Screen = 'profile' | 'category' | 'intro' | 'session' | 'results' | 'progress' | 'leaderboard';
 
 interface SessionConfig {
   category: Category;
   mode: Mode;
+  startEstimate: number;
+  isReturning: boolean;
 }
 
 export default function App() {
@@ -32,9 +35,14 @@ export default function App() {
     setScreen('category');
   };
 
+  // Bereidt een sessie voor: bepaal het startniveau uit de historie en toon
+  // eerst het introscherm met de voorbeeldvraag.
   const handleStart = (category: Category, mode: Mode) => {
-    setConfig({ category, mode });
-    setScreen('session');
+    const current = profile ? getProfile(profile.id) ?? profile : null;
+    const hasHistory = current ? current.history.some((r) => r.category === category) : false;
+    const startEstimate = current ? startEstimateForCategory(current, category) : 2.5;
+    setConfig({ category, mode, startEstimate, isReturning: hasHistory });
+    setScreen('intro');
   };
 
   const handleComplete = (result: SessionResult) => {
@@ -64,11 +72,23 @@ export default function App() {
         />
       )}
 
+      {screen === 'intro' && config && (
+        <SessionIntro
+          category={config.category}
+          mode={config.mode}
+          startEstimate={config.startEstimate}
+          isReturning={config.isReturning}
+          onStart={() => setScreen('session')}
+          onBack={() => setScreen('category')}
+        />
+      )}
+
       {screen === 'session' && config && (
         <Question
           key={`${config.category}-${config.mode}-${lastResult?.id ?? 'first'}`}
           category={config.category}
           mode={config.mode}
+          startEstimate={config.startEstimate}
           onComplete={handleComplete}
           onQuit={() => setScreen('category')}
         />

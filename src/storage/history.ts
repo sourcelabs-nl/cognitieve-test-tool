@@ -2,6 +2,7 @@
 // eenvoudige trendberekening voor de voortgangsfeedback.
 
 import type { Category, Profile, SessionResult } from '../engine/types';
+import { INITIAL_ESTIMATE } from '../engine/adaptive';
 import { loadStore, saveStore } from './store';
 
 // Voegt een sessieresultaat toe aan een profiel. Geeft het bijgewerkte
@@ -13,6 +14,14 @@ export function addResult(profileId: string, result: SessionResult): Profile | u
   profile.history.push(result);
   saveStore(store);
   return profile;
+}
+
+// Startniveau voor een nieuwe sessie: het eindniveau van de vorige sessie in
+// deze categorie, zodat een terugkerende gebruiker op niveau begint. Zonder
+// historie starten we in het midden.
+export function startEstimateForCategory(profile: Profile, category: Category): number {
+  const results = resultsForCategory(profile, category);
+  return results.length > 0 ? results[results.length - 1].finalEstimate : INITIAL_ESTIMATE;
 }
 
 export function resultsForCategory(profile: Profile, category: Category): SessionResult[] {

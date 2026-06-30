@@ -9,6 +9,7 @@ import { categoryLabels } from '../generators';
 import { bestScoreForCategory, compareToPrevious, formatDateTime } from '../storage/history';
 import { randomFact } from '../data/facts';
 import { LevelChart } from './LevelChart';
+import { LevelInfo } from './LevelInfo';
 
 interface Props {
   result: SessionResult;
@@ -84,6 +85,8 @@ export function Results({ result, profile, onRetry, onHome, onShowProgress, onSh
         Je presteert <strong>{describeLevel(result.finalEstimate)}</strong> in deze categorie.
       </p>
       <p className="feedback-line">{trendText(profile, result)}</p>
+
+      <LevelInfo />
 
       <LevelChart values={result.estimateTrail} label="Niveauverloop tijdens deze sessie" />
 

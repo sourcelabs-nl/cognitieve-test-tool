@@ -7,8 +7,10 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   applyAnswer,
   createSession,
+  levelForEstimate,
   nextLevel,
   summarizeSession,
+  INITIAL_ESTIMATE,
   MAX_ITEMS,
 } from '../engine/adaptive';
 import { scoreAnswer } from '../engine/scoring';
@@ -28,22 +30,27 @@ export interface Feedback {
 interface Params {
   category: Category;
   mode: Mode;
+  startEstimate?: number;
   onComplete: (result: SessionResult) => void;
 }
 
 // Halverwege de sessie verschijnt een motiverend feit.
 const TIP_AFTER = Math.floor(MAX_ITEMS / 2);
 
-export function useSession({ category, mode, onComplete }: Params) {
-  const [session, setSession] = useState<SessionState>(() => createSession(category, mode));
-  const [item, setItem] = useState<Item>(() => generate(category, nextLevel(createSession(category, mode)), 0));
+export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, onComplete }: Params) {
+  const [session, setSession] = useState<SessionState>(() => createSession(category, mode, startEstimate));
+  const [item, setItem] = useState<Item>(() =>
+    generate(category, nextLevel(createSession(category, mode, startEstimate)), 0),
+  );
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [tip, setTip] = useState<Fact | null>(null);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [levelUp, setLevelUp] = useState<number | null>(null);
 
   const startTime = useRef<number>(performance.now());
   const bestStreak = useRef(0);
+  const maxLevel = useRef(levelForEstimate(startEstimate));
   const tipShown = useRef(false);
   const completed = useRef(false);
 
@@ -105,6 +112,15 @@ export function useSession({ category, mode, onComplete }: Params) {
       const newScore = score + points;
       bestStreak.current = Math.max(bestStreak.current, streakAfter);
 
+      // Melding wanneer een hoger niveau dan tot nu toe wordt bereikt.
+      const reachedLevel = levelForEstimate(nextState.estimate);
+      if (reachedLevel > maxLevel.current) {
+        maxLevel.current = reachedLevel;
+        setLevelUp(reachedLevel);
+      } else {
+        setLevelUp(null);
+      }
+
       setSession(nextState);
       setScore(newScore);
       setStreak(streakAfter);
@@ -153,6 +169,7 @@ export function useSession({ category, mode, onComplete }: Params) {
     tip,
     score,
     streak,
+    levelUp,
     itemNumber,
     totalItems: MAX_ITEMS,
     submitAnswer,
