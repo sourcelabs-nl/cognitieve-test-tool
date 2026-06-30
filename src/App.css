@@ -403,10 +403,29 @@ button {
   border-color: var(--bad);
 }
 
+.feedback-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .feedback-title {
   font-weight: 700;
   color: var(--text-h);
   margin-bottom: 6px;
+}
+
+/* Voorleesknop */
+.prompt-top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.speak-button {
+  width: 38px;
+  height: 38px;
 }
 
 .feedback button {

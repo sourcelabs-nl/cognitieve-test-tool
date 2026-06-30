@@ -6,6 +6,8 @@ import { Flame, TrendingUp, X } from 'lucide-react';
 import type { Category, Mode, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { useSession } from '../state/useSession';
+import { SpeakButton } from './SpeakButton';
+import { toSpoken } from './speech';
 
 interface Props {
   category: Category;
@@ -72,6 +74,9 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
       )}
 
       <div className="prompt">
+        <div className="prompt-top">
+          <SpeakButton text={toSpoken(item.prompt)} label="Lees de vraag voor" />
+        </div>
         {item.prompt.split('\n').map((line, i) => (
           <p key={i} className={i === 0 ? 'prompt-text' : 'prompt-sequence'}>{line}</p>
         ))}
@@ -92,9 +97,12 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
 
       {feedback && (
         <div className={`feedback ${feedback.correct ? 'good' : 'bad'}`}>
-          <p className="feedback-title">
-            {feedback.correct ? `Goed! +${feedback.pointsEarned} punten` : 'Helaas, niet juist.'}
-          </p>
+          <div className="feedback-head">
+            <p className="feedback-title">
+              {feedback.correct ? `Goed! +${feedback.pointsEarned} punten` : 'Helaas, niet juist.'}
+            </p>
+            <SpeakButton text={feedback.explanation} label="Lees de uitleg voor" />
+          </div>
           <p>{feedback.explanation}</p>
           <button className="primary" onClick={proceed} autoFocus>
             {isLastQuestion ? 'Bekijk resultaat' : 'Volgende vraag'}

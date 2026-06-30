@@ -8,6 +8,8 @@ import type { Category, Mode } from '../engine/types';
 import { categoryLabels, generate } from '../generators';
 import { levelForEstimate } from '../engine/adaptive';
 import { LevelInfo } from './LevelInfo';
+import { SpeakButton } from './SpeakButton';
+import { toSpoken } from './speech';
 
 interface Props {
   category: Category;
@@ -57,6 +59,9 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
       <p className="muted">Even opwarmen. Deze vraag telt niet mee.</p>
 
       <div className="prompt">
+        <div className="prompt-top">
+          <SpeakButton text={toSpoken(example.prompt)} label="Lees de vraag voor" />
+        </div>
         {example.prompt.split('\n').map((line, i) => (
           <p key={i} className={i === 0 ? 'prompt-text' : 'prompt-sequence'}>{line}</p>
         ))}
@@ -72,7 +77,10 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
 
       {chosen !== null && (
         <div className={`feedback ${chosen === example.correctIndex ? 'good' : 'bad'}`}>
-          <p className="feedback-title">{chosen === example.correctIndex ? 'Goed!' : 'Net niet.'}</p>
+          <div className="feedback-head">
+            <p className="feedback-title">{chosen === example.correctIndex ? 'Goed!' : 'Net niet.'}</p>
+            <SpeakButton text={example.explanation} label="Lees de uitleg voor" />
+          </div>
           <p>{example.explanation}</p>
         </div>
       )}
