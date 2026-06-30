@@ -7,6 +7,8 @@ import { BarChart3, Home, Trophy } from 'lucide-react';
 import type { Profile, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { bestScoreForCategory, compareToPrevious, formatDateTime } from '../storage/history';
+import { levelForEstimate } from '../engine/adaptive';
+import { levelLabel } from '../engine/levels';
 import { randomFact } from '../data/facts';
 import { LevelChart } from './LevelChart';
 import { LevelInfo } from './LevelInfo';
@@ -18,14 +20,6 @@ interface Props {
   onHome: () => void;
   onShowProgress: () => void;
   onShowLeaderboard: () => void;
-}
-
-// Vertaalt een niveau-schatting naar een herkenbare omschrijving.
-function describeLevel(estimate: number): string {
-  if (estimate < 2.0) return 'een instappend niveau';
-  if (estimate < 3.0) return 'rond mbo 3-4 niveau';
-  if (estimate < 4.0) return 'tussen mbo-4 en hbo';
-  return 'rond hbo-niveau';
 }
 
 function trendText(profile: Profile, result: SessionResult): string {
@@ -82,7 +76,7 @@ export function Results({ result, profile, onRetry, onHome, onShowProgress, onSh
       </div>
 
       <p className="feedback-line">
-        Je presteert <strong>{describeLevel(result.finalEstimate)}</strong> in deze categorie.
+        Je eindigt op <strong>niveau {levelForEstimate(result.finalEstimate)}</strong> ({levelLabel(result.finalEstimate)}) in deze categorie.
       </p>
       <p className="feedback-line">{trendText(profile, result)}</p>
 

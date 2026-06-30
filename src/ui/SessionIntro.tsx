@@ -1,12 +1,15 @@
-// Introscherm voor een sessie: laat duidelijk zien op welk niveau de gebruiker
-// start (en waarom), met uitleg, en een simpele voorbeeldvraag om op te warmen.
-// De voorbeeldvraag telt niet mee voor de score of het niveau.
+// Intro voor een sessie in twee stappen:
+//   1. Een aparte pagina die laat zien op welk niveau je start (met betekenis
+//      en uitleg).
+//   2. Een simpele voorbeeldvraag om op te warmen (telt niet mee).
+// Daarna begint de echte sessie.
 
 import { useState } from 'react';
-import { ArrowLeft, Play } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Play } from 'lucide-react';
 import type { Category, Mode } from '../engine/types';
 import { categoryLabels, generate } from '../generators';
 import { levelForEstimate } from '../engine/adaptive';
+import { levelLabel } from '../engine/levels';
 import { LevelInfo } from './LevelInfo';
 import { SpeakButton } from './SpeakButton';
 import { toSpoken } from './speech';
@@ -21,11 +24,47 @@ interface Props {
 }
 
 export function SessionIntro({ category, mode, startEstimate, isReturning, onStart, onBack }: Props) {
+  const [step, setStep] = useState<'level' | 'warmup'>('level');
+
   // Een eenvoudige warming-up: vaste, lage moeilijkheid en telt niet mee.
   const [example] = useState(() => generate(category, 1, 0));
   const [chosen, setChosen] = useState<number | null>(null);
 
   const startLevel = levelForEstimate(startEstimate);
+
+  if (step === 'level') {
+    return (
+      <section className="screen">
+        <header className="screen-header">
+          <h1>{categoryLabels[category]}</h1>
+          <button className="btn" onClick={onBack}>
+            <ArrowLeft size={18} /> Terug
+          </button>
+        </header>
+
+        <div className="start-level">
+          <span className="start-level-label">Je start op niveau</span>
+          <span className="start-level-main">
+            <span className="start-level-value">{startLevel}</span>
+            <span className="start-level-band">{levelLabel(startLevel)}</span>
+          </span>
+          <span className="muted">
+            {isReturning
+              ? 'gebaseerd op je vorige sessie in deze categorie'
+              : 'we beginnen in het midden en passen het tijdens de test aan'}
+          </span>
+        </div>
+
+        <LevelInfo />
+
+        <div className="footer-actions">
+          <button className="primary" onClick={() => setStep('warmup')}>
+            Verder <ArrowRight size={18} />
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   const optionClass = (index: number): string => {
     if (chosen === null) return 'option';
@@ -37,25 +76,12 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
   return (
     <section className="screen">
       <header className="screen-header">
-        <h1>{categoryLabels[category]}</h1>
-        <button className="btn" onClick={onBack}>
+        <h1>Voorbeeldvraag</h1>
+        <button className="btn" onClick={() => setStep('level')}>
           <ArrowLeft size={18} /> Terug
         </button>
       </header>
 
-      <div className="start-level">
-        <span className="start-level-label">Je start op niveau</span>
-        <span className="start-level-value">{startLevel}</span>
-        <span className="muted">
-          {isReturning
-            ? 'gebaseerd op je vorige sessie in deze categorie'
-            : 'we beginnen in het midden en passen het tijdens de test aan'}
-        </span>
-      </div>
-
-      <LevelInfo />
-
-      <h2>Voorbeeldvraag</h2>
       <p className="muted">Even opwarmen. Deze vraag telt niet mee.</p>
 
       <div className="prompt">
