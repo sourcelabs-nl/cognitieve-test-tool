@@ -167,6 +167,36 @@ button {
   gap: 10px;
 }
 
+/* Avatar als knop om van profiel te wisselen */
+.avatar-button {
+  position: relative;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 50%;
+  line-height: 0;
+  flex: 0 0 auto;
+}
+
+.avatar-switch-badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--surface);
+}
+
+.avatar-button:hover .avatar-switch-badge {
+  background: var(--text-h);
+}
+
 .profile-button:hover {
   border-color: var(--accent);
 }

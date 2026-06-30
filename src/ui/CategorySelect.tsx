@@ -1,7 +1,7 @@
 // Keuzescherm: categorie en modus (oefenen met feedback, of test zonder).
 
 import { useState } from 'react';
-import { BarChart3, Trophy, Users } from 'lucide-react';
+import { BarChart3, RefreshCw, Trophy } from 'lucide-react';
 import type { Category, Mode, Profile } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { Avatar } from './avatars';
@@ -27,10 +27,18 @@ export function CategorySelect({ profile, onStart, onShowProgress, onShowLeaderb
   return (
     <section className="screen">
       <header className="screen-header">
-        <h1 className="greeting"><Avatar id={profile.avatar} size={36} /> Hallo, {profile.name}</h1>
-        <button className="btn" onClick={onSwitchProfile}>
-          <Users size={18} /> Wisselen
-        </button>
+        <h1 className="greeting">
+          <button
+            className="avatar-button"
+            onClick={onSwitchProfile}
+            aria-label="Profiel wisselen"
+            title="Profiel wisselen"
+          >
+            <Avatar id={profile.avatar} size={40} />
+            <span className="avatar-switch-badge"><RefreshCw size={11} /></span>
+          </button>
+          Hallo, {profile.name}
+        </h1>
       </header>
 
       <h2>Modus</h2>
