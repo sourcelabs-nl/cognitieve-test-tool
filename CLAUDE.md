@@ -160,3 +160,4 @@ De app is een installeerbare PWA via `vite-plugin-pwa` (zie `vite.config.ts`):
 - **Iconen**: gebruik `lucide-react` (de iconenset van shadcn). Geen emoji of zelfgemaakte SVG-iconen.
 - **Knoppen standaard = icoon + tekst** (klasse `.btn`, omlijnd). Gebruik icoon-zonder-tekst (`.icon-button`) alleen voor compacte, herhaalde rij-acties (zoals verwijderen) waar tekst de layout zou verdringen; geef die dan altijd een `aria-label`.
 - Houd label-teksten van knoppen en keuze-opties die naast elkaar staan **ongeveer even lang**, zodat de layout in balans blijft.
+- **Knoppen onderaan een scherm centreren** (footer-acties horizontaal gecentreerd, klasse `.footer-actions`).
