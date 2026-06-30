@@ -292,8 +292,12 @@ button {
 }
 
 .prompt {
-  margin: 28px 0;
+  margin: 24px 0;
   text-align: center;
+  background: var(--accent-soft);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 20px;
 }
 
 .prompt-text {
