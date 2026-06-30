@@ -294,7 +294,7 @@ button {
 .prompt {
   margin: 24px 0;
   text-align: center;
-  background: var(--accent-soft);
+  background: rgba(79, 70, 229, 0.03);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 24px 20px;
