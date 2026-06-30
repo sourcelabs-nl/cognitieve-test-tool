@@ -11,6 +11,7 @@ import { Question } from './ui/Question';
 import { Results } from './ui/Results';
 import { Progress } from './ui/Progress';
 import { Leaderboard } from './ui/Leaderboard';
+import { PwaUpdater } from './ui/PwaUpdater';
 import './App.css';
 
 type Screen = 'profile' | 'category' | 'session' | 'results' | 'progress' | 'leaderboard';
@@ -46,6 +47,8 @@ export default function App() {
 
   return (
     <main className="app">
+      <PwaUpdater />
+
       {screen === 'profile' && <ProfileSelect onSelect={handleSelectProfile} />}
 
       {screen === 'category' && profile && (

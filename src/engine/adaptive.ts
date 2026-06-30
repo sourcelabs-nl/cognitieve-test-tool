@@ -38,11 +38,17 @@ export function levelForEstimate(estimate: number): number {
   return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(estimate)));
 }
 
-export function createSession(category: Category, mode: Mode): SessionState {
+// startEstimate maakt het mogelijk om een terugkerende gebruiker op het niveau
+// van zijn vorige sessie te laten beginnen, in plaats van altijd in het midden.
+export function createSession(
+  category: Category,
+  mode: Mode,
+  startEstimate: number = INITIAL_ESTIMATE,
+): SessionState {
   return {
     category,
     mode,
-    estimate: INITIAL_ESTIMATE,
+    estimate: clampEstimate(startEstimate),
     stepSize: INITIAL_STEP,
     lastDirection: null,
     answers: [],

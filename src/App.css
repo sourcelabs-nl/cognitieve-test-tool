@@ -591,6 +591,24 @@ button {
   color: var(--accent);
 }
 
+/* PWA-update melding */
+.pwa-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100% - 24px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+
 /* "Wist je dat..."-kaart */
 .fact-card {
   background: #f0f9ff;
