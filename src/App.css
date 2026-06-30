@@ -1,7 +1,9 @@
 .app {
   max-width: 680px;
   margin: 0 auto;
-  padding: 32px 20px 64px;
+  /* respecteer de notch/safe-area op telefoons */
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(48px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
 .screen {
@@ -17,6 +19,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .lead {
@@ -204,11 +207,13 @@ button {
 }
 
 .prompt-sequence {
-  font-size: 30px;
+  font-size: clamp(20px, 6vw, 30px); /* schaalt mee, loopt niet over op smalle schermen */
   font-weight: 700;
   color: var(--text-h);
   letter-spacing: 2px;
   margin-top: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .options {
@@ -502,12 +507,56 @@ button {
 }
 
 @media (max-width: 560px) {
+  .screen {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
   .mode-toggle,
   .category-grid,
   .options {
     grid-template-columns: 1fr;
   }
+
+  /* korte getallen: drie kolommen blijven prima passen */
   .stat-grid {
-    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stat {
+    padding: 12px 8px;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+
+  /* score-overzicht netjes onder elkaar als het te smal wordt */
+  .score-summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .option {
+    padding: 18px 16px; /* comfortabel tap-target */
+  }
+
+  .footer-actions {
+    gap: 12px;
+  }
+
+  /* invoer + knop onder elkaar zodat niets afgeknepen wordt */
+  .new-profile {
+    flex-direction: column;
+  }
+
+  .transfer {
+    flex-wrap: wrap;
   }
 }
