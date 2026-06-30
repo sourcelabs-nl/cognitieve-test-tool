@@ -6,6 +6,7 @@ import { listProfiles } from './profiles';
 
 export interface LeaderboardEntry {
   profileName: string;
+  avatar?: string;
   score: number;
   category: Category;
   finalEstimate: number;
@@ -28,6 +29,7 @@ export function rankProfiles(
     const best = sessions.reduce((a, b) => (b.score > a.score ? b : a));
     entries.push({
       profileName: profile.name,
+      avatar: profile.avatar,
       score: best.score,
       category: best.category,
       finalEstimate: best.finalEstimate,

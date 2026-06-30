@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { Category } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { getLeaderboard, type LeaderboardFilter } from '../storage/leaderboard';
+import { Avatar } from './avatars';
 
 interface Props {
   highlightName?: string; // markeert het huidige profiel in de lijst
@@ -54,6 +55,7 @@ export function Leaderboard({ highlightName, onBack }: Props) {
           {entries.map((e, i) => (
             <li key={`${e.profileName}-${i}`} className={e.profileName === highlightName ? 'me' : ''}>
               <span className="rank">{medals[i] ?? `${i + 1}.`}</span>
+              <Avatar id={e.avatar} size={32} />
               <span className="lb-name">{e.profileName}</span>
               {filter === 'all' && <span className="muted lb-cat">{categoryLabels[e.category as Category]}</span>}
               <span className="lb-score">{e.score}</span>

@@ -6,6 +6,8 @@ import { Download, Trash2, Upload } from 'lucide-react';
 import type { Profile } from '../engine/types';
 import { createProfile, deleteProfile, listProfiles } from '../storage/profiles';
 import { downloadExport, importFromJson } from '../storage/transfer';
+import { AVATARS } from './avatarData';
+import { Avatar } from './avatars';
 
 interface Props {
   onSelect: (profile: Profile) => void;
@@ -14,6 +16,7 @@ interface Props {
 export function ProfileSelect({ onSelect }: Props) {
   const [profiles, setProfiles] = useState<Profile[]>(() => listProfiles());
   const [name, setName] = useState('');
+  const [avatar, setAvatar] = useState<string>(AVATARS[0].id);
   const [message, setMessage] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -21,7 +24,7 @@ export function ProfileSelect({ onSelect }: Props) {
 
   const handleCreate = () => {
     if (!name.trim()) return;
-    const profile = createProfile(name);
+    const profile = createProfile(name, avatar);
     setName('');
     refresh();
     onSelect(profile);
@@ -56,8 +59,11 @@ export function ProfileSelect({ onSelect }: Props) {
         {profiles.map((p) => (
           <li key={p.id}>
             <button className="profile-button" onClick={() => onSelect(p)}>
-              <span className="profile-name">{p.name}</span>
-              <span className="muted">{p.history.length} sessies</span>
+              <Avatar id={p.avatar} size={40} />
+              <span className="profile-info">
+                <span className="profile-name">{p.name}</span>
+                <span className="muted">{p.history.length} sessies</span>
+              </span>
             </button>
             <button className="icon-button delete-button" onClick={() => handleDelete(p)} aria-label={`Verwijder ${p.name}`}>
               <Trash2 size={18} />
@@ -66,6 +72,21 @@ export function ProfileSelect({ onSelect }: Props) {
         ))}
       </ul>
 
+      <h2>Nieuw profiel</h2>
+      <div className="avatar-picker">
+        {AVATARS.map((a) => (
+          <button
+            key={a.id}
+            className={`avatar-choice ${avatar === a.id ? 'selected' : ''}`}
+            onClick={() => setAvatar(a.id)}
+            aria-label={a.label}
+            aria-pressed={avatar === a.id}
+            title={a.label}
+          >
+            <Avatar id={a.id} size={44} />
+          </button>
+        ))}
+      </div>
       <div className="new-profile">
         <input
           type="text"

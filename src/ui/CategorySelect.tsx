@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { BarChart3, Trophy, Users } from 'lucide-react';
 import type { Category, Mode, Profile } from '../engine/types';
 import { categoryLabels } from '../generators';
+import { Avatar } from './avatars';
 
 interface Props {
   profile: Profile;
@@ -26,7 +27,7 @@ export function CategorySelect({ profile, onStart, onShowProgress, onShowLeaderb
   return (
     <section className="screen">
       <header className="screen-header">
-        <h1>Hallo, {profile.name}</h1>
+        <h1 className="greeting"><Avatar id={profile.avatar} size={36} /> Hallo, {profile.name}</h1>
         <button className="btn" onClick={onSwitchProfile}>
           <Users size={18} /> Wisselen
         </button>

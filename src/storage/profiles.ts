@@ -12,11 +12,12 @@ export function getProfile(id: string): Profile | undefined {
   return loadStore().profiles.find((p) => p.id === id);
 }
 
-export function createProfile(name: string): Profile {
+export function createProfile(name: string, avatar?: string): Profile {
   const store = loadStore();
   const profile: Profile = {
     id: makeId('profile'),
     name: name.trim() || 'Naamloos',
+    avatar,
     createdAt: new Date().toISOString(),
     history: [],
   };

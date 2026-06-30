@@ -59,6 +59,7 @@ export interface SessionResult {
 export interface Profile {
   id: string;
   name: string;
+  avatar?: string; // id van de gekozen avatar (zie ui/avatars.tsx)
   createdAt: string; // ISO-datum
   history: SessionResult[];
 }
