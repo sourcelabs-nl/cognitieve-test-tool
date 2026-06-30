@@ -54,7 +54,7 @@ export function Question({ category, mode, onComplete, onQuit }: Props) {
         <span className="score-badge">{score} punten</span>
         {streak >= 2 && (
           <span className="combo-badge" title="Goede antwoorden achter elkaar">
-            <Flame size={15} /> {streak} goed op rij
+            <Flame size={15} /> {streak}x
           </span>
         )}
       </div>

@@ -476,8 +476,9 @@ button {
   align-items: center;
   gap: 6px;
   font-weight: 700;
-  color: #b45309;
-  background: #fef3c7;
+  color: var(--good);
+  background: var(--good-soft);
+  border: 1px solid #bbf7d0;
   border-radius: 99px;
   padding: 4px 12px;
 }

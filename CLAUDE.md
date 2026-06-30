@@ -2,6 +2,8 @@
 
 Projectcontext voor de adaptieve cognitieve oefentool. Lees ook `adaptieve-cognitieve-testtool.md` (oorspronkelijk bouwdocument).
 
+> **Dit is een mobile-first applicatie.** Ontwerp en bouw elk scherm eerst voor telefoonbreedte: geen horizontaal scrollen, korte teksten die passen op smalle schermen, ruime tap-targets, en respecteer de safe-area. Test wijzigingen altijd op mobiele breedte voordat je ze als klaar beschouwt.
+
 ## Doel
 
 Een web-app waarmee een gebruiker cognitieve capaciteitentests oefent. De test is **adaptief**: items worden moeilijker bij goede prestaties en makkelijker bij zwakke. Doelgroep: mbo 3-4 tot hbo. De gebruiker kiest zelf de categorie.
