@@ -465,7 +465,8 @@ button {
 .score-badge {
   font-weight: 700;
   color: var(--text-h);
-  background: var(--accent-soft);
+  background: rgba(79, 70, 229, 0.05);
+  border: 1px solid var(--border);
   border-radius: 99px;
   padding: 4px 12px;
 }
