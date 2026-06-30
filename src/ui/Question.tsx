@@ -69,7 +69,7 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
 
       {levelUp && (
         <div className="levelup-banner" role="status">
-          <TrendingUp size={18} /> Niveau {levelUp} bereikt!
+          <TrendingUp size={18} /> Oefenniveau {levelUp} bereikt!
         </div>
       )}
 

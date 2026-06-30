@@ -76,7 +76,7 @@ export function Results({ result, profile, onRetry, onHome, onShowProgress, onSh
       </div>
 
       <p className="feedback-line">
-        Je eindigt op <strong>niveau {levelForEstimate(result.finalEstimate)}</strong> ({levelLabel(result.finalEstimate)}) in deze categorie.
+        Je eindigt op <strong>oefenniveau {levelForEstimate(result.finalEstimate)}</strong> (indicatie: {levelLabel(result.finalEstimate)}) in deze categorie.
       </p>
       <p className="feedback-line">{trendText(profile, result)}</p>
 

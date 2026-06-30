@@ -44,10 +44,10 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
         </header>
 
         <div className="start-level">
-          <span className="start-level-label">Je start op niveau</span>
+          <span className="start-level-label">Je start op oefenniveau</span>
           <span className="start-level-main">
             <span className="start-level-value">{startLevel}</span>
-            <span className="start-level-band">(dat is {levelLabel(startLevel)})</span>
+            <span className="start-level-band">(indicatie: {levelLabel(startLevel)})</span>
           </span>
           <span className="muted">
             {isReturning
