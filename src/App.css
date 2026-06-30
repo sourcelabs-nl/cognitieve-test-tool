@@ -98,6 +98,26 @@ button {
   color: var(--text-h);
 }
 
+.delete-button {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  line-height: 1;
+}
+
+.delete-button:hover,
+.delete-button:active {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+
 .new-profile {
   display: flex;
   gap: 8px;

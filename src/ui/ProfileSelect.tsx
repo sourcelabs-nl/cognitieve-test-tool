@@ -26,8 +26,10 @@ export function ProfileSelect({ onSelect }: Props) {
     onSelect(profile);
   };
 
-  const handleDelete = (id: string) => {
-    deleteProfile(id);
+  const handleDelete = (profile: Profile) => {
+    const ok = window.confirm(`Profiel "${profile.name}" en alle voortgang verwijderen?`);
+    if (!ok) return;
+    deleteProfile(profile.id);
     refresh();
   };
 
@@ -56,8 +58,8 @@ export function ProfileSelect({ onSelect }: Props) {
               <span className="profile-name">{p.name}</span>
               <span className="muted">{p.history.length} sessies</span>
             </button>
-            <button className="link-button" onClick={() => handleDelete(p.id)} aria-label={`Verwijder ${p.name}`}>
-              verwijderen
+            <button className="delete-button" onClick={() => handleDelete(p)} aria-label={`Verwijder ${p.name}`}>
+              🗑
             </button>
           </li>
         ))}
