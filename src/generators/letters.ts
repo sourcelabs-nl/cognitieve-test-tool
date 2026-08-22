@@ -1,9 +1,14 @@
 // Letterpatronen: procedureel gegenereerde letterreeksen op niveau 1..5.
-// Letters worden gerekend als posities A=0..Z=25 met modulo-26 wrap, zodat
-// reeksen altijd binnen het alfabet blijven en eindig zijn.
+// Letters worden gerekend als posities A=0..Z=25 met modulo-26 wrap.
+//
+// Net als bij de cijferpatronen zijn er per niveau meerdere families, zodat
+// dezelfde puzzelvorm niet steeds terugkomt. De reeks wordt waar mogelijk zo
+// in het alfabet gelegd dat er geen omslag van Z naar A nodig is; lukt dat
+// niet (bij grote stappen), dan wijst de uitleg de gebruiker daarop.
 
 import type { Item } from '../engine/types';
-import { randInt, buildOptions } from './random';
+import { randInt, pick, buildOptions } from './random';
+import { stepLabel } from './format';
 
 const A = 65;
 
@@ -16,108 +21,348 @@ function indexOfLetter(letter: string): number {
   return letter.charCodeAt(0) - A;
 }
 
-interface Series {
-  letters: string[];
-  answerIndex: number; // positie-index van de volgende letter
+export type LetterFamily =
+  | 'step' // constante stap vooruit of achteruit
+  | 'changingStep' // stap die groter of kleiner wordt
+  | 'alternating' // twee stappen vooruit die elkaar afwisselen
+  | 'zigzag' // afwisselend vooruit en achteruit
+  | 'interwoven' // twee verweven reeksen
+  | 'interwovenTriple' // drie verweven reeksen
+  | 'mirror' // een reeks vanaf het begin en een vanaf het eind van het alfabet
+  | 'pairs' // letterparen die met een vaste stap opschuiven
+  | 'pairsMirror' // letterparen waarvan de letters uit elkaar lopen
+  | 'fibStep'; // stap is de som van de twee vorige stappen
+
+export interface LetterSeries {
+  tokens: string[]; // getoonde reeks; een token is een of twee letters
+  answer: string;
+  distractors: string[];
   explanation: string;
+  family: LetterFamily;
 }
 
-// Niveau 1: constante alfabetstap.
-function level1(): Series {
-  const start = randInt(0, 15);
-  const step = randInt(1, 4);
-  const letters = Array.from({ length: 5 }, (_, i) => letterAt(start + i * step));
+// Trekt een getal uit het bereik dat niet gelijk is aan `not`.
+function randIntExcept(min: number, max: number, not: number): number {
+  let value = randInt(min, max);
+  while (value === not) value = randInt(min, max);
+  return value;
+}
+
+// --- Opbouw van een reeks uit posities ---
+
+interface SeriesInput {
+  family: LetterFamily;
+  positions: number[]; // posities van de getoonde letters
+  answerIndex: number;
+  describe: (tokens: string[], answer: string) => string;
+}
+
+function letterSeries({ family, positions, answerIndex, describe }: SeriesInput): LetterSeries {
+  const tokens = positions.map(letterAt);
+  const answer = letterAt(answerIndex);
+  const wraps = [...positions, answerIndex].some((p) => p < 0 || p > 25);
+  const hint = wraps ? ' Let op: na Z begint het alfabet weer bij A.' : '';
   return {
-    letters,
-    answerIndex: start + 5 * step,
-    explanation: `Elke stap is +${step} in het alfabet. Na ${letters[4]} volgt ${letterAt(start + 5 * step)}.`,
+    tokens,
+    answer,
+    distractors: [
+      letterAt(answerIndex + 1),
+      letterAt(answerIndex - 1),
+      letterAt(answerIndex + 2),
+      letterAt(answerIndex - 2),
+      tokens[tokens.length - 1],
+    ],
+    explanation: describe(tokens, answer) + hint,
+    family,
   };
 }
 
-// Niveau 2: oplopende stap.
-function level2(): Series {
-  const start = randInt(0, 10);
-  const firstStep = randInt(1, 3);
-  const increment = randInt(1, 2);
-  const positions = [start];
-  for (let i = 0; i < 4; i++) {
-    positions.push(positions[i] + firstStep + i * increment);
-  }
-  const lastStep = firstStep + 4 * increment;
-  const letters = positions.map(letterAt);
+// Een patroon uitgedrukt in posities ten opzichte van de eerste letter. De
+// reeks mag daardoor vrij in het alfabet geschoven worden.
+interface OffsetPattern {
+  family: LetterFamily;
+  offsets: number[];
+  answerOffset: number;
+  describe: (tokens: string[], answer: string) => string;
+}
+
+// Legt een patroon zo in het alfabet dat er geen omslag nodig is. Past het
+// patroon niet binnen 26 letters, dan begint het op A en loopt het door.
+function fromOffsets({ family, offsets, answerOffset, describe }: OffsetPattern): LetterSeries {
+  const all = [...offsets, answerOffset];
+  const min = Math.min(...all);
+  const span = Math.max(...all) - min;
+  const base = span > 25 ? -min : randInt(0, 25 - span) - min;
+  return letterSeries({
+    family,
+    positions: offsets.map((o) => o + base),
+    answerIndex: answerOffset + base,
+    describe,
+  });
+}
+
+// --- Families ---
+
+function constantStep(step: number): OffsetPattern {
   return {
-    letters,
-    answerIndex: positions[4] + lastStep,
-    explanation: `De stap loopt op met +${increment}: +${firstStep}, +${firstStep + increment}, ... De volgende stap is +${lastStep}, dus na ${letters[4]} volgt ${letterAt(positions[4] + lastStep)}.`,
+    family: 'step',
+    offsets: [0, step, 2 * step, 3 * step, 4 * step],
+    answerOffset: 5 * step,
+    describe: (tokens, answer) =>
+      `Elke stap is ${stepLabel(step)} in het alfabet. Na ${tokens[4]} volgt ${answer}.`,
   };
 }
 
-// Niveau 3: twee verweven reeksen (beide vooruit, eigen stap).
-function level3(): Series {
-  const startA = randInt(0, 6);
-  const stepA = randInt(2, 4);
-  const startB = randInt(13, 19);
-  const stepB = randInt(2, 4);
-  const letters = [
-    letterAt(startA),
-    letterAt(startB),
-    letterAt(startA + stepA),
-    letterAt(startB + stepB),
-    letterAt(startA + 2 * stepA),
-    letterAt(startB + 2 * stepB),
-  ];
+// Stap die per keer met `increment` verandert (negatief: de stap wordt kleiner).
+function changingStep(firstStep: number, increment: number): OffsetPattern {
+  const offsets = [0];
+  for (let i = 0; i < 4; i++) offsets.push(offsets[i] + firstStep + i * increment);
+  const nextStep = firstStep + 4 * increment;
+  const shown = [firstStep, firstStep + increment, firstStep + 2 * increment];
   return {
-    letters,
-    answerIndex: startA + 3 * stepA,
-    explanation: `Twee verweven reeksen. De oneven posities lopen +${stepA} (${letterAt(startA)}, ${letterAt(startA + stepA)}, ...), de even +${stepB}. De volgende letter hoort bij de eerste reeks: na ${letterAt(startA + 2 * stepA)} volgt ${letterAt(startA + 3 * stepA)}.`,
+    family: 'changingStep',
+    offsets,
+    answerOffset: offsets[4] + nextStep,
+    describe: (tokens, answer) =>
+      `De stap verandert elke keer met ${stepLabel(increment)}: ${shown
+        .map(stepLabel)
+        .join(', ')}, ... De volgende stap is ${stepLabel(nextStep)}, dus na ${tokens[4]} volgt ${answer}.`,
   };
 }
 
-// Niveau 4: twee afwisselende stappen (+a, +b, +a, +b, ...).
-function level4(): Series {
-  const start = randInt(0, 10);
-  const stepA = randInt(1, 3);
-  const stepB = randInt(3, 5);
-  const positions = [start];
-  for (let i = 0; i < 5; i++) {
-    positions.push(positions[i] + (i % 2 === 0 ? stepA : stepB));
-  }
-  const visible = positions.slice(0, 5).map(letterAt);
-  // volgende stap heeft index 4 -> even -> stepA
+// Twee stappen die elkaar om en om afwisselen. Met een negatieve tweede stap
+// levert dit een reeks op die heen en weer gaat (zigzag).
+function twoStepCycle(first: number, second: number, family: LetterFamily): OffsetPattern {
+  const offsets = [0];
+  for (let i = 0; i < 4; i++) offsets.push(offsets[i] + (i % 2 === 0 ? first : second));
   return {
-    letters: visible,
-    answerIndex: positions[4] + stepA,
-    explanation: `De stappen wisselen elkaar af: +${stepA}, +${stepB}, +${stepA}, +${stepB}, ... De volgende stap is +${stepA}, dus na ${visible[4]} volgt ${letterAt(positions[4] + stepA)}.`,
+    family,
+    offsets,
+    answerOffset: offsets[4] + first,
+    describe: (tokens, answer) =>
+      `De stappen wisselen elkaar af: ${stepLabel(first)}, ${stepLabel(second)}, ${stepLabel(first)}, ${stepLabel(second)}, ... De volgende stap is ${stepLabel(first)}, dus na ${tokens[4]} volgt ${answer}.`,
   };
 }
 
-// Niveau 5: een vooruit- en een achteruitreeks verweven.
-function level5(): Series {
-  const startF = randInt(0, 6);
-  const stepF = randInt(1, 3);
-  const startB = randInt(19, 25);
+// Twee verweven reeksen. De gevraagde letter hoort altijd bij de eerste reeks
+// (de oneven posities), zodat het antwoord eenduidig is.
+function interwovenPair(stepA: number, gap: number, stepB: number): OffsetPattern {
+  return {
+    family: 'interwoven',
+    offsets: [0, gap, stepA, gap + stepB, 2 * stepA, gap + 2 * stepB],
+    answerOffset: 3 * stepA,
+    describe: (tokens, answer) =>
+      `Twee verweven reeksen. De oneven posities lopen ${stepLabel(stepA)} (${tokens[0]}, ${tokens[2]}, ${tokens[4]}, ...), de even posities ${stepLabel(stepB)}. De gevraagde letter hoort bij de eerste reeks: na ${tokens[4]} volgt ${answer}.`,
+  };
+}
+
+// Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks.
+function interwovenTriple(): OffsetPattern {
+  // Reeks A is de gevraagde reeks; met stap 1 zou het antwoord te makkelijk
+  // af te lezen zijn.
+  const stepA = randInt(2, 3);
   const stepB = randInt(1, 3);
-  const letters = [
-    letterAt(startF),
-    letterAt(startB),
-    letterAt(startF + stepF),
-    letterAt(startB - stepB),
-    letterAt(startF + 2 * stepF),
-    letterAt(startB - 2 * stepB),
-  ];
+  const stepC = randInt(1, 3);
+  const gapB = randInt(4, 7);
+  const gapC = randInt(9, 12);
   return {
-    letters,
-    answerIndex: startF + 3 * stepF,
-    explanation: `Twee verweven reeksen: de oneven posities lopen vooruit +${stepF}, de even posities lopen achteruit -${stepB}. De volgende letter hoort bij de vooruitreeks: na ${letterAt(startF + 2 * stepF)} volgt ${letterAt(startF + 3 * stepF)}.`,
+    family: 'interwovenTriple',
+    offsets: [
+      0,
+      gapB,
+      gapC,
+      stepA,
+      gapB + stepB,
+      gapC + stepC,
+      2 * stepA,
+      gapB + 2 * stepB,
+      gapC + 2 * stepC,
+    ],
+    answerOffset: 3 * stepA,
+    describe: (tokens, answer) =>
+      `Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks. De eerste reeks is ${tokens[0]}, ${tokens[3]}, ${tokens[6]} en loopt ${stepLabel(stepA)}. De gevraagde letter hoort daarbij: na ${tokens[6]} volgt ${answer}.`,
   };
 }
 
-const builders = [level1, level2, level3, level4, level5];
+// Een reeks die vooraan in het alfabet begint, verweven met een reeks die
+// achteraan begint en terugloopt.
+function mirrorPair(forwardMin: number, forwardMax: number): LetterSeries {
+  const stepForward = randInt(forwardMin, forwardMax);
+  const stepBack = randInt(1, 3);
+  const startForward = randInt(0, 2);
+  const startBack = randInt(23, 25);
+  const positions = [
+    startForward,
+    startBack,
+    startForward + stepForward,
+    startBack - stepBack,
+    startForward + 2 * stepForward,
+    startBack - 2 * stepBack,
+  ];
+  return letterSeries({
+    family: 'mirror',
+    positions,
+    answerIndex: startForward + 3 * stepForward,
+    describe: (tokens, answer) =>
+      `De oneven posities beginnen vooraan in het alfabet en lopen ${stepLabel(stepForward)} (${tokens[0]}, ${tokens[2]}, ${tokens[4]}, ...), de even posities beginnen achteraan en lopen ${stepLabel(-stepBack)} (${tokens[1]}, ${tokens[3]}, ${tokens[5]}, ...). De gevraagde letter hoort bij de eerste reeks: na ${tokens[4]} volgt ${answer}.`,
+  });
+}
 
-// Bouwt de Series voor een gegeven niveau (1..5). Exporteerbaar voor tests.
-export function buildLetterSeries(level: number): Series {
+interface PairOptions {
+  first: number; // positie van de eerste letter van het eerste paar
+  firstStep: number;
+  second: number; // positie van de tweede letter van het eerste paar
+  secondStep: number;
+  family: LetterFamily;
+  describe: (tokens: string[], answer: string) => string;
+}
+
+// Reeks van letterparen, bijvoorbeeld AB, DE, GH, ...
+function letterPairs({
+  first,
+  firstStep,
+  second,
+  secondStep,
+  family,
+  describe,
+}: PairOptions): LetterSeries {
+  const pairAt = (i: number): string =>
+    letterAt(first + i * firstStep) + letterAt(second + i * secondStep);
+  const tokens = Array.from({ length: 5 }, (_, i) => pairAt(i));
+  const answerFirst = first + 5 * firstStep;
+  const answerSecond = second + 5 * secondStep;
+  const answer = letterAt(answerFirst) + letterAt(answerSecond);
+  return {
+    tokens,
+    answer,
+    distractors: [
+      letterAt(answerFirst + 1) + letterAt(answerSecond + 1),
+      letterAt(answerFirst - 1) + letterAt(answerSecond - 1),
+      letterAt(answerFirst) + letterAt(answerSecond + 1),
+      letterAt(answerFirst + 1) + letterAt(answerSecond),
+      tokens[4],
+    ],
+    explanation: describe(tokens, answer),
+    family,
+  };
+}
+
+// Paren van twee opeenvolgende letters die met een vaste stap opschuiven.
+function steppingPairs(stepMin: number, stepMax: number, innerMax: number): LetterSeries {
+  const step = randInt(stepMin, stepMax);
+  const inner = randInt(1, innerMax);
+  const first = randInt(0, Math.max(0, 24 - inner - 5 * step));
+  return letterPairs({
+    first,
+    firstStep: step,
+    second: first + inner,
+    secondStep: step,
+    family: 'pairs',
+    describe: (tokens, answer) =>
+      `Beide letters van het paar schuiven ${stepLabel(step)} op; binnen een paar zit steeds ${inner} stap${inner === 1 ? '' : 'pen'} verschil. Na ${tokens[4]} volgt ${answer}.`,
+  });
+}
+
+// Paren waarvan de eerste letter vooruit loopt en de tweede achteruit.
+function divergingPairs(): LetterSeries {
+  const firstStep = randInt(1, 3);
+  const secondStep = randInt(1, 3);
+  return letterPairs({
+    first: randInt(0, 25 - 5 * firstStep),
+    firstStep,
+    second: randInt(5 * secondStep, 25),
+    secondStep: -secondStep,
+    family: 'pairsMirror',
+    describe: (tokens, answer) =>
+      `De eerste letter van elk paar loopt ${stepLabel(firstStep)}, de tweede loopt ${stepLabel(-secondStep)}. Na ${tokens[4]} volgt ${answer}.`,
+  });
+}
+
+// Beginstappen die binnen het alfabet passen wanneer ze fibonacci-gewijs
+// oplopen (grotere startstappen zouden voorbij Z schieten).
+const FIB_STEP_STARTS: readonly (readonly [number, number])[] = [
+  [1, 1],
+  [1, 2],
+  [2, 1],
+];
+
+// Stap die de som is van de twee vorige stappen.
+function fibonacciSteps(a: number, b: number): OffsetPattern {
+  const steps = [a, b];
+  for (let i = 2; i < 5; i++) steps.push(steps[i - 1] + steps[i - 2]);
+  const offsets = [0];
+  for (let i = 0; i < 4; i++) offsets.push(offsets[i] + steps[i]);
+  return {
+    family: 'fibStep',
+    offsets,
+    answerOffset: offsets[4] + steps[4],
+    describe: (tokens, answer) =>
+      `Elke stap is de som van de twee vorige stappen: ${steps
+        .slice(0, 4)
+        .map(stepLabel)
+        .join(', ')}, ... De volgende stap is ${stepLabel(steps[4])}, dus na ${tokens[4]} volgt ${answer}.`,
+  };
+}
+
+// --- Niveau-indeling ---
+//
+// Niveau 1 en 2 blijven toegankelijk als instap; vanaf niveau 3 lopen zowel het
+// aantal families als de zwaarte op.
+
+const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
+  1: [
+    () => fromOffsets(constantStep(randInt(1, 4))),
+    () => fromOffsets(constantStep(-randInt(1, 4))),
+    () => steppingPairs(2, 3, 1),
+  ],
+  2: [
+    // Stap 5 is de grootste die nog binnen A..Z past voor een reeks van zes.
+    () => fromOffsets(constantStep(randInt(4, 5))),
+    () => fromOffsets(constantStep(-randInt(4, 5))),
+    () => fromOffsets(changingStep(1, 1)),
+    () => fromOffsets(twoStepCycle(randInt(1, 2), randInt(3, 4), 'alternating')),
+  ],
+  3: [
+    () => fromOffsets(changingStep(randInt(2, 3), 1)),
+    () => {
+      // Stap die kleiner wordt maar positief blijft.
+      const decrement = randInt(1, 2);
+      return fromOffsets(changingStep(randInt(4 * decrement + 1, 4 * decrement + 3), -decrement));
+    },
+    () => fromOffsets(twoStepCycle(randInt(2, 4), randInt(5, 7), 'alternating')),
+    () => {
+      const stepA = randInt(2, 4);
+      return fromOffsets(interwovenPair(stepA, randInt(9, 13), randIntExcept(2, 4, stepA)));
+    },
+    () => steppingPairs(3, 4, 2),
+  ],
+  4: [
+    () => fromOffsets(changingStep(1, 2)),
+    () => {
+      const up = randInt(3, 6);
+      return fromOffsets(twoStepCycle(up, -randIntExcept(1, 4, up), 'zigzag'));
+    },
+    () => fromOffsets(interwovenPair(randInt(2, 4), randInt(14, 20), -randInt(2, 4))),
+    () => mirrorPair(1, 3),
+    divergingPairs,
+  ],
+  5: [
+    () => {
+      const [a, b] = pick(FIB_STEP_STARTS);
+      return fromOffsets(fibonacciSteps(a, b));
+    },
+    () => fromOffsets(interwovenTriple()),
+    () => fromOffsets(twoStepCycle(randInt(2, 4), -randInt(5, 8), 'zigzag')),
+    () => fromOffsets(interwovenPair(randInt(4, 6), randInt(14, 20), -randInt(4, 6))),
+    () => mirrorPair(2, 4),
+    divergingPairs,
+  ],
+};
+
+// Bouwt de reeks voor een gegeven niveau (1..5). Exporteerbaar voor tests.
+export function buildLetterSeries(level: number): LetterSeries {
   const clamped = Math.min(5, Math.max(1, Math.round(level)));
-  return builders[clamped - 1]();
+  return pick(strategiesByLevel[clamped])();
 }
 
 let counter = 0;
@@ -125,26 +370,18 @@ let counter = 0;
 export function generateLetters(level: number): Item {
   const clamped = Math.min(5, Math.max(1, Math.round(level)));
   const series = buildLetterSeries(clamped);
-  const correct = letterAt(series.answerIndex);
-  const distractors = [
-    letterAt(series.answerIndex + 1),
-    letterAt(series.answerIndex - 1),
-    letterAt(series.answerIndex + 2),
-    series.letters[series.letters.length - 1],
-    letterAt(series.answerIndex - 2),
-  ];
-  const { options, correctIndex } = buildOptions(correct, distractors);
+  const { options, correctIndex } = buildOptions(series.answer, series.distractors);
   counter += 1;
   return {
     id: `letters-${clamped}-${counter}`,
     category: 'letters',
     level: clamped,
-    prompt: `Welke letter komt er op de plek van het vraagteken?\n\n${series.letters.join(', ')}, ?`,
+    prompt: `Welke letter${series.answer.length > 1 ? 's komen' : ' komt'} er op de plek van het vraagteken?\n\n${series.tokens.join(', ')}, ?`,
     options,
     correctIndex,
     explanation: series.explanation,
   };
 }
 
-// Hulpfunctie voor tests: bepaalt de juiste letter uit een Series.
+// Hulpfunctie voor tests: bepaalt de positie van een letter.
 export { indexOfLetter };

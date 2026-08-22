@@ -72,3 +72,10 @@ export function generateVerbal(level: number): Item {
 export function verbalBank(): VerbalEntry[] {
   return entries;
 }
+
+// Vergeet welke items recent zijn getoond. Alleen bedoeld voor tests; in de app
+// blijft de geschiedenis juist staan, zodat een volgende sessie andere items
+// laat zien.
+export function resetVerbalHistory(): void {
+  recentlyUsed.clear();
+}

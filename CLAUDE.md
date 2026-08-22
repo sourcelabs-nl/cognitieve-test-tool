@@ -19,7 +19,7 @@ Prioriteiten (hoog naar laag): inhoudelijk goede vragen → werkend adaptief alg
 Categorieën (toegespitst op de focus van de opdrachtgever):
 - **Cijferpatronen** — procedureel gegenereerd, 5 niveaus.
 - **Letterpatronen** — procedureel gegenereerd, 5 niveaus (A-Z ↔ 1-26, modulo 26).
-- **Woordrelaties** — gecureerde Nederlandse itembank met niveau-label (analogieën "A : B = C : ?").
+- **Woordrelaties** — gecureerde Nederlandse itembank met niveau-label (analogieën "A : B = C : ?"), ruim 150 items met het zwaartepunt op niveau 3-5.
 - **Gemengd** — wisselt de drie categorieën af.
 
 Buiten v1 (architectureel wel mogelijk gehouden): abstracte/figuurreeksen, rekenkundig redeneren, IRT/CAT-kalibratie, backend-sync.
@@ -120,13 +120,28 @@ Houd methodes wetenschappelijk verantwoord, maar simpel in gebruik (de complexit
 ## Cijferpatronen: strategieen
 
 De numerieke generator gebruikt per niveau meerdere strategieen door elkaar, didactisch gegradeerd (zie `generators/numeric.ts`, `NumericFamily`):
-- N1: constante stap (+ en -).
-- N2: grotere constante stap (+/-), constante factor (x2/x3).
-- N3: veranderende stap (oplopend/aflopend), twee verweven reeksen.
-- N4: afwisselend x en +, recursief (vorige x m + c), grotere factor.
-- N5: kwadraten, derdemachten, Fibonacci, priemgetallen.
+- N1: constante stap (+ en -), verdubbelen.
+- N2: grotere constante stap, dalende reeks die door nul zakt, constante factor (x2/x3), halveren.
+- N3: veranderende stap (oplopend/aflopend), delen (:2/:3), twee verweven reeksen, verweven reeks die door nul zakt, afwisselend +a en -b.
+- N4: afwisselend x en + of x en -, recursief (vorige x m + c, c mag negatief), grotere factor, stap die door nul kantelt, verweven met een dalende tweede reeks, zigzag die naar negatieve getallen zakt.
+- N5: kwadraten en derdemachten (met vaste verschuiving), machten van 2/3 (+/-1), Fibonacci, priemgetallen, negatieve factor (wisselend teken), zwaardere recursie en verweving.
+
+Niveau 1 en 2 blijven bewust toegankelijk als instap (mbo 3-4); de variatie zit daar in het uiterlijk van de reeks, niet in de zwaarte. Vanaf niveau 3 lopen zowel het aantal families als de zwaarte op.
+
+**Negatieve getallen** komen vanaf niveau 2 voor en op elk niveau daarboven, didactisch opgebouwd: een dalende reeks die door nul zakt (N2), een verweven reeks die door nul zakt (N3), een zigzag naar negatief en negatieve constanten (N4), en tot slot een negatieve factor met wisselend teken (N5). Elk niveau vanaf 2 heeft minstens een strategie die gegarandeerd negatieve getallen oplevert; `__tests__/numeric.test.ts` bewaakt dat.
 
 Elke familie heeft een onafhankelijke verificatie in `__tests__/numeric.test.ts` zodat het juiste antwoord eenduidig is.
+
+## Letterpatronen: strategieen
+
+Ook de letter-generator werkt met families (zie `generators/letters.ts`, `LetterFamily`), zodat dezelfde puzzelvorm niet steeds terugkomt:
+- L1: constante stap vooruit/achteruit, letterparen die opschuiven (AB, DE, GH, ...).
+- L2: grotere constante stap, oplopende stap, twee afwisselende stappen.
+- L3: veranderende stap (groter/kleiner), grotere afwisselende stappen, twee verweven reeksen, letterparen met grotere sprong.
+- L4: sterk oplopende stap, zigzag (vooruit/achteruit), verweven met een teruglopende reeks, reeks vanaf het begin verweven met een reeks vanaf het eind van het alfabet, paren waarvan de letters uit elkaar lopen.
+- L5: stap volgens Fibonacci, drie verweven reeksen, zigzag met netto achterwaartse drift, verweving en spiegeling met grotere stappen.
+
+Een reeks wordt waar mogelijk zo in het alfabet gelegd dat er geen omslag van Z naar A nodig is. Op niveau 1 en 2 past dat altijd; komt een omslag op hogere niveaus toch voor, dan wijst de uitleg de gebruiker erop.
 
 ## Itemkwaliteit (belangrijk)
 

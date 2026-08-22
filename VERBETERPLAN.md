@@ -60,10 +60,12 @@ Voorwaarde voor alles hieronder: er is nu geen centrale dataset.
 
 ## Prioriteit 3: Itembank en inhoud
 
-- Woordrelaties: bank vergroten (nu ~40 items) en spreiden over de niveaus;
-  dubbelzinnigheid handmatig blijven controleren.
+- Woordrelaties: bank verder vergroten (nu ruim 150 items, zwaartepunt op
+  niveau 3-5) en dubbelzinnigheid handmatig blijven controleren. Dit is de enige
+  niet-generatieve categorie, dus gezien is op: elk niveau moet ruim meer items
+  hebben dan een sessie lang is.
 - Cijfer-/letterpatronen: meer strategie-families toevoegen, mits eenduidig en
-  testbaar.
+  testbaar. Elke familie krijgt een onafhankelijke verificatie in de tests.
 - Eventueel categorieen uit het oorspronkelijke bouwdoc toevoegen: abstracte
   figuurreeksen (SVG) en rekenkundig redeneren.
 - Itemkwaliteit blijven borgen met de bestaande validatie-tests.
