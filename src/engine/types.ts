@@ -11,6 +11,14 @@ export type Mode = 'practice' | 'test';
 export const MIN_LEVEL = 1;
 export const MAX_LEVEL = 5;
 
+// Getrapte hulp bij een item, opvraagbaar tijdens het oefenen. Geen van beide
+// teksten noemt het antwoord: samen doen ze de eerste denkstap voor, de laatste
+// stap blijft aan de gebruiker.
+export interface Hint {
+  strategy: string; // hoe pak je dit soort vraag aan (zegt niets over dit item)
+  step: string; // de eerste concrete denkstap voor juist dit item
+}
+
 export interface Item {
   id: string;
   category: ItemCategory;
@@ -19,6 +27,7 @@ export interface Item {
   options: string[]; // meerkeuze-opties
   correctIndex: number; // index van het juiste antwoord in options
   explanation: string; // uitleg, gebruikt voor feedback in oefenmodus
+  hint: Hint; // getrapte hulp, alleen gebruikt in oefenmodus
 }
 
 export interface Answer {

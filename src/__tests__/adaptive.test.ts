@@ -17,6 +17,7 @@ function fakeItem(level: number, correct: boolean): { item: Item; chosenIndex: n
     options: ['a', 'b', 'c', 'd'],
     correctIndex: 0,
     explanation: '',
+    hint: { strategy: '', step: '' },
   };
   return { item, chosenIndex: correct ? 0 : 1 };
 }

@@ -16,6 +16,7 @@
 import type { Item } from '../engine/types';
 import { randInt, pick, buildOptions } from './random';
 import { stepLabel } from './format';
+import { STRATEGY_HINTS } from './hints';
 
 export type NumericFamily =
   | 'arithmetic' // constante stap (+ of -), mag door nul heen
@@ -36,6 +37,8 @@ export interface NumericSeries {
   terms: number[];
   answer: number;
   explanation: string;
+  // Eerste concrete denkstap voor deze reeks, zonder het antwoord te noemen.
+  hint: string;
   family: NumericFamily;
   // Optionele, op maat gemaakte afleiders. Zonder dit veld gebruikt de
   // generator de standaard afleiders rond het juiste antwoord.
@@ -54,6 +57,14 @@ function randIntExcept(min: number, max: number, not: number): number {
   let value = randInt(min, max);
   while (value === not) value = randInt(min, max);
   return value;
+}
+
+// Somt de verschillen tussen opeenvolgende termen op: "+4, +4, +4, +4".
+function diffList(terms: number[]): string {
+  return terms
+    .slice(1)
+    .map((t, i) => stepLabel(t - terms[i]))
+    .join(', ');
 }
 
 // Schrijft een term met vaste verschuiving uit: "3^2 - 2", of "3^2" bij nul.
@@ -81,6 +92,7 @@ function arithmetic({ start, step }: ArithmeticOptions): NumericSeries {
     terms,
     answer: start + 5 * step,
     explanation: `Elke stap is ${stepLabel(step)}. ${applied(terms[4], step)}.`,
+    hint: `De verschillen tussen de getallen zijn ${diffList(terms)}. Dat verschil blijft dus steeds hetzelfde. Zet die stap nog een keer, vanaf ${terms[4]}.`,
     family: 'arithmetic',
   };
 }
@@ -109,6 +121,7 @@ function geometric(ratios: readonly number[], startMax: number): NumericSeries {
     terms,
     answer,
     explanation: `Elke term is de vorige keer ${ratio}.${signHint} ${terms[4]} x ${ratio} = ${answer}.`,
+    hint: `Optellen levert hier geen vast verschil op, dus probeer te delen: ${terms[1]} : ${terms[0]} = ${ratio} en ${terms[2]} : ${terms[1]} = ${ratio}. Elke term is dus de vorige keer ${ratio}.${signHint}`,
     family: 'geometric',
     distractors:
       ratio < 0
@@ -123,13 +136,16 @@ function geometric(ratios: readonly number[], startMax: number): NumericSeries {
 // termen en het antwoord hele getallen zijn.
 function divide(divisors: readonly number[]): NumericSeries {
   const divisor = pick(divisors);
-  const answer = randInt(1, 3);
+  // Een eindantwoord vanaf 4 houdt de reeks weg bij de triviale afloop op 1 en
+  // voorkomt dat het antwoord toevallig gelijk is aan de deler.
+  const answer = randInt(4, 7);
   const start = answer * divisor ** 5;
   const terms = Array.from({ length: 5 }, (_, i) => start / divisor ** i);
   return {
     terms,
     answer,
     explanation: `Elke term is de vorige gedeeld door ${divisor}. ${terms[4]} : ${divisor} = ${answer}.`,
+    hint: `De getallen worden steeds kleiner, maar niet met een vast verschil. Probeer te delen: ${terms[0]} : ${terms[1]} = ${divisor}. Dat gaat elke stap zo.`,
     family: 'divide',
   };
 }
@@ -151,6 +167,7 @@ function arithmetic2({ start, firstStep, increment }: Arithmetic2Options): Numer
     explanation: `De stap verandert elke keer met ${stepLabel(increment)}: ${shown
       .map(stepLabel)
       .join(', ')}, ... De volgende stap is ${stepLabel(nextStep)}, dus ${applied(terms[4], nextStep)}.`,
+    hint: `De verschillen tussen de getallen zijn ${diffList(terms)}. Die verschillen zijn niet gelijk, maar vormen zelf een keurige reeks. Bepaal eerst wat de volgende stap wordt en pas die daarna toe op ${terms[4]}.`,
     family: 'arithmetic2',
   };
 }
@@ -194,6 +211,7 @@ function zigzag({ start, up, down }: ZigzagOptions): NumericSeries {
     terms,
     answer: terms[4] + up,
     explanation: `De stappen wisselen elkaar af: +${up}, -${down}, +${up}, -${down}, ... De volgende stap is +${up}, dus ${applied(terms[4], up)}.`,
+    hint: `De reeks gaat om en om omhoog en omlaag: de verschillen zijn ${diffList(terms)}. Er zijn dus twee stappen die elkaar afwisselen. Welke van de twee is nu aan de beurt?`,
     family: 'zigzag',
   };
 }
@@ -221,6 +239,7 @@ function interwoven({ startA, stepA, startB, stepB }: InterwovenOptions): Numeri
     terms,
     answer,
     explanation: `Twee verweven reeksen. De oneven posities lopen ${stepLabel(stepA)} (${startA}, ${startA + stepA}, ${startA + 2 * stepA}, ...), de even posities ${stepLabel(stepB)}. Het gevraagde getal hoort bij de eerste reeks: ${applied(startA + 2 * stepA, stepA)}.`,
+    hint: `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 1e, 3e en 5e positie: ${startA}, ${startA + stepA}, ${startA + 2 * stepA}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`,
     family: 'interwoven',
     // De voortzetting van de tweede reeks is hier de klassieke valkuil.
     distractors: [startB + 3 * stepB, answer + stepA, answer - stepA, answer + 1, answer - 1],
@@ -242,6 +261,7 @@ function recursive({ start, multiplier, constant }: RecursiveOptions): NumericSe
     terms,
     answer,
     explanation: `Elke term is de vorige keer ${multiplier} ${opWord}. ${terms[4]} x ${multiplier} ${constant < 0 ? '-' : '+'} ${Math.abs(constant)} = ${answer}.`,
+    hint: `De reeks groeit te snel voor optellen, maar delen geeft geen rond getal. Er gebeuren hier twee dingen na elkaar. Probeer eens: ${terms[0]} x ${multiplier} = ${terms[0] * multiplier}, en kijk wat je daar nog bij moet doen om op ${terms[1]} uit te komen.`,
     family: 'recursive',
     // Fouten in de regel zijn leerzamer dan een verschil van 1: de constante
     // vergeten, hem dubbel toepassen, of hem voor het vermenigvuldigen optellen.
@@ -296,6 +316,7 @@ function altOps({ start, multiplier, addend }: AltOpsOptions): NumericSeries {
     terms,
     answer,
     explanation: `De bewerkingen wisselen elkaar af: ${ops.join(', ')}, ... De volgende bewerking is x${multiplier}, dus ${terms[4]} x ${multiplier} = ${answer}.`,
+    hint: `Er wisselen hier twee verschillende bewerkingen elkaar af. Van ${terms[0]} naar ${terms[1]} is een grote sprong, van ${terms[1]} naar ${terms[2]} een kleine. Bepaal welke van de twee nu aan de beurt is.`,
     family: 'altops',
     // De verkeerde bewerking aan de beurt laten komen is hier de valkuil.
     distractors: [terms[4] + addend, answer + addend, terms[4] * (multiplier + 1)],
@@ -326,6 +347,7 @@ function squares(): NumericSeries {
     explanation: `Dit zijn kwadraten${offsetWord(offset)}: ${terms
       .map((_, i) => shifted(`${first + i}^2`, offset))
       .join(', ')}, ... De volgende is ${shifted(`${n}^2`, offset)} = ${n ** 2 + offset}.`,
+    hint: `De verschillen zijn ${diffList(terms)}: die lopen steeds met 2 op. Dat gebeurt precies bij kwadraten. Kijk of je in ${terms[0]} en ${terms[1]} de kwadraten van twee opeenvolgende getallen herkent.`,
     family: 'squares',
     distractors: [terms[4] + (terms[4] - terms[3]), n ** 2, (n + 1) ** 2 + offset],
   };
@@ -342,6 +364,7 @@ function cubes(): NumericSeries {
     explanation: `Dit zijn derdemachten${offsetWord(offset)}: ${terms
       .map((_, i) => shifted(`${first + i}^3`, offset))
       .join(', ')}, ... De volgende is ${shifted(`${n}^3`, offset)} = ${n ** 3 + offset}.`,
+    hint: `De reeks groeit hard, maar niet met een vaste factor. Reken eens ${first} x ${first} x ${first} uit en vergelijk dat met ${terms[0]}. Doe daarna hetzelfde met het volgende getal.`,
     family: 'cubes',
     // Denken dat het verschil gelijk blijft is hier de klassieke fout.
     distractors: [terms[4] + (terms[4] - terms[3]), n ** 3, (n + 1) ** 3 + offset],
@@ -362,6 +385,7 @@ function powers(): NumericSeries {
     explanation: `Dit zijn machten van ${base}${offsetWord(offset)}: ${terms
       .map((_, i) => shifted(`${base}^${first + i}`, offset))
       .join(', ')}, ... De volgende is ${shifted(`${base}^${exponent}`, offset)} = ${answer}.`,
+    hint: `Elk getal is ongeveer ${base} keer het vorige, maar net niet precies. Kijk wat er gebeurt als je er van elk getal ${Math.abs(offset)} ${offset < 0 ? 'bij optelt' : 'afhaalt'}: dan houd je ronde machten van ${base} over.`,
     family: 'powers',
     // De verschuiving vergeten of verkeerd toepassen, of de stap gelijk houden.
     distractors: [base ** exponent, answer - 2 * offset, terms[4] + (terms[4] - terms[3])],
@@ -378,6 +402,7 @@ function fibonacci(): NumericSeries {
     terms,
     answer: all[5],
     explanation: `Elke term is de som van de twee voorgaande: ${terms[3]} + ${terms[4]} = ${all[5]}.`,
+    hint: `Er is hier geen vaste stap en geen vaste factor. Tel eens twee getallen die naast elkaar staan bij elkaar op: ${terms[0]} + ${terms[1]} = ${terms[2]}. Kijk of dat verderop ook opgaat.`,
     family: 'fibonacci',
   };
 }
@@ -394,6 +419,7 @@ function primes(): NumericSeries {
     terms,
     answer,
     explanation: `Dit zijn opeenvolgende priemgetallen. Het volgende priemgetal na ${terms[4]} is ${answer}.`,
+    hint: `De verschillen zijn onregelmatig (${diffList(terms)}), dus er zit geen rekenregel achter. Kijk eens door welke getallen ${terms[1]} en ${terms[2]} deelbaar zijn. Het gaat hier om een bekend rijtje getallen.`,
     family: 'primes',
     // Alleen oneven afleiders: +1 zou een even getal zijn en dus te makkelijk
     // uit te sluiten.
@@ -523,5 +549,6 @@ export function generateNumeric(level: number): Item {
     options,
     correctIndex,
     explanation: series.explanation,
+    hint: { strategy: STRATEGY_HINTS.numeric, step: series.hint },
   };
 }

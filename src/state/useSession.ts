@@ -25,6 +25,7 @@ export interface Feedback {
   correctIndex: number;
   explanation: string;
   pointsEarned: number;
+  hintUsed: boolean; // punten zijn dan gehalveerd
 }
 
 interface Params {
@@ -37,6 +38,9 @@ interface Params {
 // Halverwege de sessie verschijnt een motiverend feit.
 const TIP_AFTER = Math.floor(MAX_ITEMS / 2);
 
+// Aantal tredes hulp: eerst de aanpak, daarna de eerste concrete denkstap.
+export const HINT_STEPS = 2;
+
 export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, onComplete }: Params) {
   const [session, setSession] = useState<SessionState>(() => createSession(category, mode, startEstimate));
   const [item, setItem] = useState<Item>(() =>
@@ -47,6 +51,9 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [levelUp, setLevelUp] = useState<number | null>(null);
+  // Hoeveel tredes hulp er voor het huidige item zijn opgevraagd: 0 = geen,
+  // 1 = de aanpak, 2 = ook de eerste concrete denkstap.
+  const [hintLevel, setHintLevel] = useState(0);
 
   const startTime = useRef<number>(performance.now());
   const bestStreak = useRef(0);
@@ -73,10 +80,17 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
     (state: SessionState) => {
       const next = generate(category, nextLevel(state), state.answers.length);
       setItem(next);
+      setHintLevel(0); // elke nieuwe vraag begint weer zonder hulp
       startTime.current = performance.now();
     },
     [category],
   );
+
+  // Een trede hulp erbij. Meer dan twee tredes zijn er niet.
+  const revealHint = useCallback(() => {
+    if (feedback || tip) return;
+    setHintLevel((current) => Math.min(HINT_STEPS, current + 1));
+  }, [feedback, tip]);
 
   // Bepaalt wat er na een afgehandeld antwoord gebeurt: afronden, een feit
   // tonen, of doorgaan naar de volgende vraag.
@@ -108,6 +122,7 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
         level: item.level,
         responseMs,
         streakBefore: streak,
+        hintUsed: hintLevel > 0,
       });
       const newScore = score + points;
       bestStreak.current = Math.max(bestStreak.current, streakAfter);
@@ -134,13 +149,14 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
           correctIndex: item.correctIndex,
           explanation: item.explanation,
           pointsEarned: points,
+          hintUsed: hintLevel > 0,
         });
         return;
       }
 
       advance(nextState, newScore);
     },
-    [feedback, tip, session, item, mode, streak, score, advance],
+    [feedback, tip, session, item, mode, streak, score, hintLevel, advance],
   );
 
   // Oefenmodus: na het lezen van de feedback verder.
@@ -172,6 +188,9 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
     levelUp,
     itemNumber,
     totalItems: MAX_ITEMS,
+    hintLevel,
+    hintsLeft: HINT_STEPS - hintLevel,
+    revealHint,
     submitAnswer,
     proceed,
     dismissTip,

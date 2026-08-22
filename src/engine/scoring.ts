@@ -3,7 +3,8 @@
 //   1. Niveau-bonus  - moeilijkere items zijn meer waard.
 //   2. Snelheidsbonus - sneller goed antwoorden levert extra punten op.
 //   3. Reeks-bonus    - opeenvolgende goede antwoorden bouwen een combo op.
-// Een fout antwoord levert 0 punten op en breekt de reeks.
+// Een fout antwoord levert 0 punten op en breekt de reeks. Is er hulp gevraagd
+// bij het item, dan tellen de punten half.
 
 export const BASE_POINTS = 100;
 export const LEVEL_BONUS = 20; // per niveau (1..5)
@@ -17,11 +18,14 @@ export const MEDIUM_BONUS = 25;
 export const COMBO_STEP = 0.1; // elke extra goede in de reeks: +10%
 export const MAX_COMBO_MULTIPLIER = 2.0; // gedekt op 2x
 
+export const HINT_PENALTY = 0.5; // met hulp tellen de punten half
+
 export interface ScoreInput {
   correct: boolean;
   level: number; // niveau van het item (1..5)
   responseMs: number;
   streakBefore: number; // aantal goede antwoorden direct hiervoor
+  hintUsed?: boolean; // hulp gevraagd bij dit item
 }
 
 export interface ScoreResult {
@@ -48,6 +52,9 @@ export function scoreAnswer(input: ScoreInput): ScoreResult {
   const streakAfter = input.streakBefore + 1;
   const speedBonus = speedBonusFor(input.responseMs);
   const raw = BASE_POINTS + input.level * LEVEL_BONUS + speedBonus;
-  const points = Math.round(raw * comboMultiplier(streakAfter));
+  const full = Math.round(raw * comboMultiplier(streakAfter));
+  // Met hulp tellen de punten half. De reeks blijft wel staan: hulp vragen mag
+  // niet zo duur zijn dat iemand er maar van afziet als hij vastloopt.
+  const points = input.hintUsed ? Math.round(full * HINT_PENALTY) : full;
   return { points, streakAfter, speedBonus };
 }

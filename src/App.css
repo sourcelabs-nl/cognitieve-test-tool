@@ -433,6 +433,39 @@ button {
   margin-bottom: 6px;
 }
 
+/* Getrapte hulp tijdens het oefenen */
+.hint-card {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  color: #713f12;
+}
+
+.hint-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* De tweede trede krijgt lucht, zodat de twee tips niet aan elkaar plakken */
+.hint-head-second {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #fcd34d;
+}
+
+.hint-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: #854d0e;
+  margin-bottom: 6px;
+}
+
 /* Voorleesknop: floating in de hoek van het vraagkader, duwt de tekst niet weg */
 .prompt-top {
   position: absolute;

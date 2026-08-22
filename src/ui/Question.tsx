@@ -2,7 +2,7 @@
 // spelscore en combo bij. In oefenmodus volgt directe feedback met uitleg; in
 // testmodus gaat het meteen door. Halverwege verschijnt een motiverend feit.
 
-import { Flame, TrendingUp, X } from 'lucide-react';
+import { Flame, Lightbulb, TrendingUp, X } from 'lucide-react';
 import type { Category, Mode, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { useSession } from '../state/useSession';
@@ -18,8 +18,12 @@ interface Props {
 }
 
 export function Question({ category, mode, startEstimate, onComplete, onQuit }: Props) {
-  const { item, feedback, tip, score, streak, levelUp, itemNumber, totalItems, submitAnswer, proceed, dismissTip, isLastQuestion } =
+  const { item, feedback, tip, score, streak, levelUp, itemNumber, totalItems, hintLevel, hintsLeft, revealHint, submitAnswer, proceed, dismissTip, isLastQuestion } =
     useSession({ category, mode, startEstimate, onComplete });
+
+  // Hulp hoort bij oefenen. In testmodus is er bewust geen tussentijdse
+  // ondersteuning, net zoals er dan ook geen feedback per vraag is.
+  const helpAvailable = mode === 'practice' && !feedback;
 
   const progress = Math.round(((itemNumber - 1) / totalItems) * 100);
 
@@ -95,11 +99,42 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
         ))}
       </div>
 
+      {hintLevel > 0 && (
+        <div className="hint-card" role="status">
+          <div className="hint-head">
+            <p className="hint-title">
+              <Lightbulb size={16} /> Zo pak je het aan
+            </p>
+            <SpeakButton text={item.hint.strategy} label="Lees de hulp voor" />
+          </div>
+          <p>{item.hint.strategy}</p>
+          {hintLevel > 1 && (
+            <>
+              <div className="hint-head hint-head-second">
+                <p className="hint-title">Deze vraag</p>
+                <SpeakButton text={item.hint.step} label="Lees de tip voor" />
+              </div>
+              <p>{item.hint.step}</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {helpAvailable && hintsLeft > 0 && (
+        <div className="footer-actions">
+          <button className="btn" onClick={revealHint}>
+            <Lightbulb size={18} /> {hintLevel === 0 ? 'Hulp' : 'Nog een tip'}
+          </button>
+        </div>
+      )}
+
       {feedback && (
         <div className={`feedback ${feedback.correct ? 'good' : 'bad'}`}>
           <div className="feedback-head">
             <p className="feedback-title">
-              {feedback.correct ? `Goed! +${feedback.pointsEarned} punten` : 'Helaas, niet juist.'}
+              {feedback.correct
+                ? `Goed! +${feedback.pointsEarned} punten${feedback.hintUsed ? ' (halve punten, met hulp)' : ''}`
+                : 'Helaas, niet juist.'}
             </p>
             <SpeakButton text={feedback.explanation} label="Lees de uitleg voor" />
           </div>

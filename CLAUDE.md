@@ -68,6 +68,11 @@ src/
 ```ts
 type Category = 'numeric' | 'letters' | 'verbal' | 'mixed';
 
+interface Hint {
+  strategy: string;       // aanpak per categorie, verklapt de familie niet
+  step: string;           // eerste concrete denkstap voor dit item
+}
+
 interface Item {
   id: string;
   category: Category;
@@ -75,7 +80,8 @@ interface Item {
   prompt: string;
   options: string[];
   correctIndex: number;
-  explanation?: string;   // gebruikt voor feedback in oefenmodus
+  explanation: string;    // gebruikt voor feedback in oefenmodus
+  hint: Hint;             // getrapte hulp: { strategy, step }
 }
 
 // levert een item op het gevraagde niveau
@@ -104,11 +110,25 @@ Houd methodes wetenschappelijk verantwoord, maar simpel in gebruik (de complexit
 
 ## Feedback & voortgang
 
-- **Oefenmodus**: per vraag direct goed/fout + uitleg.
+- **Oefenmodus**: per vraag direct goed/fout + uitleg, plus een hulpknop tijdens het nadenken (zie hieronder).
 - **Testmodus**: geen tussentijdse feedback, alleen eindrapport.
 - **Eindrapport**: schatting, % goed, gem. tijd, niveauverloop-grafiek + tekstuele duiding.
 - **Voortgang**: per profiel en per categorie de eindschatting over de tijd; trend t.o.v. vorige sessies (omhoog/stabiel/omlaag). Elke sessie slaat datum en tijd op (`completedAt`).
 - **Export/import**: voortgang als JSON-bestand downloaden en weer importeren (versiecheck op het schema), zodat data niet verloren gaat bij het wissen van browserdata of bij wisselen van apparaat.
+
+## Getrapte hulp tijdens het oefenen
+
+Elk `Item` heeft een `hint` met twee tredes, opvraagbaar via de hulpknop en alleen in oefenmodus (de testmodus geeft per definitie geen tussentijdse ondersteuning):
+
+1. **`strategy`** - hoe pak je dit soort vraag aan. Deze tekst staat per categorie vast in `generators/hints.ts`. Bewust niet per strategie-familie: zou hij verklappen dat het om een verweven reeks gaat, dan was de vraag al half beantwoord. De tekst noemt daarom alle sporen die je kunt volgen.
+2. **`step`** - de eerste concrete denkstap voor juist dit item, geleverd door de generator die het patroon kent (bijvoorbeeld "de verschillen zijn +4, +4, +4"). De laatste stap blijft altijd aan de gebruiker.
+
+Regels die de tests bewaken (`__tests__/hints.test.ts`):
+- Geen van beide teksten rekent het antwoord voor (nooit `= <antwoord>`).
+- De `step` is niet simpelweg de `explanation` van het antwoord.
+- Bij woordrelaties mag geen enkel antwoord uit de bank als heel woord in de hulptekst voorkomen. Let hierop bij het formuleren: gewone voorzetsels zijn riskant, want "bij" en "hand" zijn ook antwoorden in de bank.
+
+**Score**: hulp gevraagd betekent halve punten voor dat item (`HINT_PENALTY` in `engine/scoring.ts`). De reeks/combo blijft wel staan, zodat hulp vragen niet zo duur wordt dat iemand er van afziet als hij vastloopt. Zonder aftrek zou hint-spammen het klassement en het persoonlijk record waardeloos maken.
 
 ## Gamification (spelgevoel)
 

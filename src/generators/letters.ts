@@ -9,6 +9,7 @@
 import type { Item } from '../engine/types';
 import { randInt, pick, buildOptions } from './random';
 import { stepLabel } from './format';
+import { STRATEGY_HINTS } from './hints';
 
 const A = 65;
 
@@ -38,7 +39,15 @@ export interface LetterSeries {
   answer: string;
   distractors: string[];
   explanation: string;
+  // Eerste concrete denkstap voor deze reeks, zonder het antwoord te noemen.
+  hint: string;
   family: LetterFamily;
+}
+
+// Zet de getoonde letters om naar hun plaats in het alfabet: "E=5, I=9, M=13".
+// Dat omzetten is bij letterreeksen bijna altijd de eerste nuttige stap.
+function positionList(tokens: string[]): string {
+  return tokens.map((t) => `${t}=${indexOfLetter(t) + 1}`).join(', ');
 }
 
 // Trekt een getal uit het bereik dat niet gelijk is aan `not`.
@@ -55,13 +64,14 @@ interface SeriesInput {
   positions: number[]; // posities van de getoonde letters
   answerIndex: number;
   describe: (tokens: string[], answer: string) => string;
+  hint: (tokens: string[]) => string; // krijgt het antwoord bewust niet mee
 }
 
-function letterSeries({ family, positions, answerIndex, describe }: SeriesInput): LetterSeries {
+function letterSeries({ family, positions, answerIndex, describe, hint }: SeriesInput): LetterSeries {
   const tokens = positions.map(letterAt);
   const answer = letterAt(answerIndex);
   const wraps = [...positions, answerIndex].some((p) => p < 0 || p > 25);
-  const hint = wraps ? ' Let op: na Z begint het alfabet weer bij A.' : '';
+  const wrapNote = wraps ? ' Let op: na Z begint het alfabet weer bij A.' : '';
   return {
     tokens,
     answer,
@@ -72,7 +82,8 @@ function letterSeries({ family, positions, answerIndex, describe }: SeriesInput)
       letterAt(answerIndex - 2),
       tokens[tokens.length - 1],
     ],
-    explanation: describe(tokens, answer) + hint,
+    explanation: describe(tokens, answer) + wrapNote,
+    hint: hint(tokens),
     family,
   };
 }
@@ -84,11 +95,18 @@ interface OffsetPattern {
   offsets: number[];
   answerOffset: number;
   describe: (tokens: string[], answer: string) => string;
+  hint: (tokens: string[]) => string;
 }
 
 // Legt een patroon zo in het alfabet dat er geen omslag nodig is. Past het
 // patroon niet binnen 26 letters, dan begint het op A en loopt het door.
-function fromOffsets({ family, offsets, answerOffset, describe }: OffsetPattern): LetterSeries {
+function fromOffsets({
+  family,
+  offsets,
+  answerOffset,
+  describe,
+  hint,
+}: OffsetPattern): LetterSeries {
   const all = [...offsets, answerOffset];
   const min = Math.min(...all);
   const span = Math.max(...all) - min;
@@ -98,6 +116,7 @@ function fromOffsets({ family, offsets, answerOffset, describe }: OffsetPattern)
     positions: offsets.map((o) => o + base),
     answerIndex: answerOffset + base,
     describe,
+    hint,
   });
 }
 
@@ -110,6 +129,8 @@ function constantStep(step: number): OffsetPattern {
     answerOffset: 5 * step,
     describe: (tokens, answer) =>
       `Elke stap is ${stepLabel(step)} in het alfabet. Na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De sprong tussen twee letters is steeds ${stepLabel(step)}. Zet die sprong nog een keer vanaf ${tokens[4]}.`,
   };
 }
 
@@ -127,6 +148,10 @@ function changingStep(firstStep: number, increment: number): OffsetPattern {
       `De stap verandert elke keer met ${stepLabel(increment)}: ${shown
         .map(stepLabel)
         .join(', ')}, ... De volgende stap is ${stepLabel(nextStep)}, dus na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De sprongen zijn dan ${shown
+        .map(stepLabel)
+        .join(', ')}, ... Die blijven niet gelijk, maar veranderen zelf steeds even veel. Bepaal eerst de volgende sprong.`,
   };
 }
 
@@ -141,6 +166,8 @@ function twoStepCycle(first: number, second: number, family: LetterFamily): Offs
     answerOffset: offsets[4] + first,
     describe: (tokens, answer) =>
       `De stappen wisselen elkaar af: ${stepLabel(first)}, ${stepLabel(second)}, ${stepLabel(first)}, ${stepLabel(second)}, ... De volgende stap is ${stepLabel(first)}, dus na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De sprongen zijn ${stepLabel(first)}, ${stepLabel(second)}, ${stepLabel(first)}, ${stepLabel(second)}: er wisselen dus twee sprongen elkaar af. Welke van de twee is nu aan de beurt?`,
   };
 }
 
@@ -153,6 +180,8 @@ function interwovenPair(stepA: number, gap: number, stepB: number): OffsetPatter
     answerOffset: 3 * stepA,
     describe: (tokens, answer) =>
       `Twee verweven reeksen. De oneven posities lopen ${stepLabel(stepA)} (${tokens[0]}, ${tokens[2]}, ${tokens[4]}, ...), de even posities ${stepLabel(stepB)}. De gevraagde letter hoort bij de eerste reeks: na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `De letters springen heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 1e, 3e en 5e letter: ${tokens[0]}, ${tokens[2]}, ${tokens[4]}. Dat is een nette reeks op zichzelf, en de gevraagde letter hoort daarbij.`,
   };
 }
 
@@ -181,6 +210,8 @@ function interwovenTriple(): OffsetPattern {
     answerOffset: 3 * stepA,
     describe: (tokens, answer) =>
       `Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks. De eerste reeks is ${tokens[0]}, ${tokens[3]}, ${tokens[6]} en loopt ${stepLabel(stepA)}. De gevraagde letter hoort daarbij: na ${tokens[6]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Twee reeksen door elkaar levert hier niets op, probeer er drie. Kijk alleen naar de 1e, 4e en 7e letter: ${tokens[0]}, ${tokens[3]}, ${tokens[6]}. De gevraagde letter hoort bij die reeks.`,
   };
 }
 
@@ -205,6 +236,8 @@ function mirrorPair(forwardMin: number, forwardMax: number): LetterSeries {
     answerIndex: startForward + 3 * stepForward,
     describe: (tokens, answer) =>
       `De oneven posities beginnen vooraan in het alfabet en lopen ${stepLabel(stepForward)} (${tokens[0]}, ${tokens[2]}, ${tokens[4]}, ...), de even posities beginnen achteraan en lopen ${stepLabel(-stepBack)} (${tokens[1]}, ${tokens[3]}, ${tokens[5]}, ...). De gevraagde letter hoort bij de eerste reeks: na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Hier staan twee reeksen door elkaar die elkaar vanaf beide uiteinden van het alfabet tegemoet komen. De 1e, 3e en 5e letter (${tokens[0]}, ${tokens[2]}, ${tokens[4]}) beginnen vooraan en lopen vooruit; de 2e, 4e en 6e (${tokens[1]}, ${tokens[3]}, ${tokens[5]}) beginnen achteraan en lopen terug. Volg alleen de eerste reeks.`,
   });
 }
 
@@ -215,6 +248,7 @@ interface PairOptions {
   secondStep: number;
   family: LetterFamily;
   describe: (tokens: string[], answer: string) => string;
+  hint: (tokens: string[]) => string;
 }
 
 // Reeks van letterparen, bijvoorbeeld AB, DE, GH, ...
@@ -225,6 +259,7 @@ function letterPairs({
   secondStep,
   family,
   describe,
+  hint,
 }: PairOptions): LetterSeries {
   const pairAt = (i: number): string =>
     letterAt(first + i * firstStep) + letterAt(second + i * secondStep);
@@ -243,6 +278,7 @@ function letterPairs({
       tokens[4],
     ],
     explanation: describe(tokens, answer),
+    hint: hint(tokens),
     family,
   };
 }
@@ -260,6 +296,8 @@ function steppingPairs(stepMin: number, stepMax: number, innerMax: number): Lett
     family: 'pairs',
     describe: (tokens, answer) =>
       `Beide letters van het paar schuiven ${stepLabel(step)} op; binnen een paar zit steeds ${inner} stap${inner === 1 ? '' : 'pen'} verschil. Na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Behandel de twee letters van elk blokje apart. De eerste letters vormen samen een reeks: ${tokens.map((t) => t[0]).join(', ')}. Zoek daar de sprong in, en doe daarna hetzelfde met de tweede letters.`,
   });
 }
 
@@ -275,6 +313,8 @@ function divergingPairs(): LetterSeries {
     family: 'pairsMirror',
     describe: (tokens, answer) =>
       `De eerste letter van elk paar loopt ${stepLabel(firstStep)}, de tweede loopt ${stepLabel(-secondStep)}. Na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Behandel de twee letters van elk blokje apart. De eerste letters zijn ${tokens.map((t) => t[0]).join(', ')} en de tweede ${tokens.map((t) => t[1]).join(', ')}. Let op: die twee reeksen lopen niet dezelfde kant op.`,
   });
 }
 
@@ -301,6 +341,11 @@ function fibonacciSteps(a: number, b: number): OffsetPattern {
         .slice(0, 4)
         .map(stepLabel)
         .join(', ')}, ... De volgende stap is ${stepLabel(steps[4])}, dus na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De sprongen zijn ${steps
+        .slice(0, 4)
+        .map(stepLabel)
+        .join(', ')}. Die sprongen volgen zelf een patroon: tel er eens twee die naast elkaar staan bij elkaar op.`,
   };
 }
 
@@ -380,6 +425,7 @@ export function generateLetters(level: number): Item {
     options,
     correctIndex,
     explanation: series.explanation,
+    hint: { strategy: STRATEGY_HINTS.letters, step: series.hint },
   };
 }
 

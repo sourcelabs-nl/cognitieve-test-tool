@@ -6,6 +6,7 @@ import {
   FAST_BONUS,
   MEDIUM_BONUS,
   MAX_COMBO_MULTIPLIER,
+  HINT_PENALTY,
 } from '../engine/scoring';
 
 describe('scoring', () => {
@@ -43,5 +44,36 @@ describe('scoring', () => {
     const base = BASE_POINTS + 3 * LEVEL_BONUS + MEDIUM_BONUS;
     const huge = scoreAnswer({ correct: true, level: 3, responseMs: 5000, streakBefore: 100 });
     expect(huge.points).toBe(Math.round(base * MAX_COMBO_MULTIPLIER));
+  });
+
+  it('met hulp tellen de punten half, maar de reeks blijft staan', () => {
+    const input = { correct: true, level: 4, responseMs: 5000, streakBefore: 3 };
+    const solo = scoreAnswer(input);
+    const helped = scoreAnswer({ ...input, hintUsed: true });
+    expect(helped.points).toBe(Math.round(solo.points * HINT_PENALTY));
+    expect(helped.streakAfter).toBe(solo.streakAfter);
+  });
+
+  it('hulp bij een fout antwoord verandert niets: het blijft 0 punten', () => {
+    const r = scoreAnswer({
+      correct: false,
+      level: 4,
+      responseMs: 5000,
+      streakBefore: 3,
+      hintUsed: true,
+    });
+    expect(r.points).toBe(0);
+    expect(r.streakAfter).toBe(0);
+  });
+
+  it('hulp is nooit voordeliger dan het zelf oplossen', () => {
+    for (let level = 1; level <= 5; level++) {
+      for (const responseMs of [1000, 5000, 9000]) {
+        const input = { correct: true, level, responseMs, streakBefore: 2 };
+        expect(scoreAnswer({ ...input, hintUsed: true }).points).toBeLessThan(
+          scoreAnswer(input).points,
+        );
+      }
+    }
   });
 });

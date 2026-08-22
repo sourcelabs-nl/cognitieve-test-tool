@@ -3,9 +3,10 @@
 
 import type { Item } from '../engine/types';
 import { shuffle } from './random';
+import { STRATEGY_HINTS } from './hints';
 import bank from '../data/verbal.json';
 
-interface VerbalEntry {
+export interface VerbalEntry {
   level: number;
   a: string;
   b: string;
@@ -34,6 +35,18 @@ function poolForLevel(level: number): VerbalEntry[] {
     }
   }
   return entries;
+}
+
+// Tweede trede van de hulp: doet de eerste denkstap voor met de woorden van dit
+// item, maar laat het benoemen van de relatie aan de gebruiker. Dat is precies
+// de stap die geoefend moet worden.
+//
+// De formulering vermijdt bewust voorzetsels als "bij" en "met", omdat die ook
+// als antwoord in de bank voorkomen ("zwerm : bij"). Een antwoordwoord dat
+// toevallig in de hulptekst staat, is een ongewenste aanwijzing. Exporteerbaar
+// zodat de test dat over de hele bank kan controleren.
+export function verbalHintStep(entry: VerbalEntry): string {
+  return `Maak deze zin voor jezelf af: "${entry.a} verhoudt zich tot ${entry.b} zoals ..." Houd die zin zo kort mogelijk. Zet daarna ${entry.c} vooraan in dezelfde zin en kijk welke van de vier opties hem kloppend maakt. Passen er meerdere, maak je zin dan scherper.`;
 }
 
 let counter = 0;
@@ -65,6 +78,7 @@ export function generateVerbal(level: number): Item {
     options,
     correctIndex: options.indexOf(correctValue),
     explanation: entry.explanation,
+    hint: { strategy: STRATEGY_HINTS.verbal, step: verbalHintStep(entry) },
   };
 }
 
