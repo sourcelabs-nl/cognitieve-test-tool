@@ -27,6 +27,7 @@ export type NumericFamily =
   | 'interwoven' // twee verweven reeksen
   | 'recursive' // vorige x m + c (c mag negatief zijn)
   | 'altops' // afwisselend x en + (of -)
+  | 'altmuldiv' // afwisselend x en : , netto groeiend
   | 'squares' // kwadraten, eventueel met vaste verschuiving
   | 'cubes' // derdemachten, eventueel met vaste verschuiving
   | 'powers' // machten van 2 of 3, met vaste verschuiving
@@ -109,6 +110,22 @@ function arithmeticDown(stepMin: number, stepMax: number): NumericSeries {
 function arithmeticThroughZero(stepMin: number, stepMax: number): NumericSeries {
   const step = randInt(stepMin, stepMax);
   return arithmetic({ start: randInt(2 * step, 4 * step), step: -step });
+}
+
+// Stijgende reeks die onder nul begint en er halverwege door heen komt.
+function arithmeticFromNegative(stepMin: number, stepMax: number): NumericSeries {
+  const step = randInt(stepMin, stepMax);
+  return arithmetic({ start: -randInt(2 * step, 4 * step), step });
+}
+
+// Reeks van ronde getallen (tientallen of kwartjes), oplopend of aflopend. Even
+// makkelijk als de kleine reeksen, maar het beeld op het scherm is heel anders.
+function arithmeticRound(unit: number, maxSteps: number): NumericSeries {
+  const step = unit * randInt(1, maxSteps);
+  const up = pick([true, false]);
+  // Bij een dalende reeks start hoog genoeg dat alle termen positief blijven.
+  const start = up ? unit * randInt(1, 9) : step * randInt(6, 10);
+  return arithmetic({ start, step: up ? step : -step });
 }
 
 function geometric(ratios: readonly number[], startMax: number): NumericSeries {
@@ -220,7 +237,7 @@ interface InterwovenOptions {
   startA: number;
   stepA: number;
   startB: number;
-  stepB: number; // mag negatief zijn: de tweede reeks daalt dan
+  stepB: number; // negatief = de tweede reeks daalt, 0 = hij blijft gelijk
 }
 
 // Twee reeksen die om en om staan. Het gevraagde getal hoort altijd bij reeks A
@@ -235,10 +252,12 @@ function interwoven({ startA, stepA, startB, stepB }: InterwovenOptions): Numeri
     startB + 2 * stepB,
   ];
   const answer = startA + 3 * stepA;
+  const seriesB =
+    stepB === 0 ? `de even posities blijven ${startB}` : `de even posities lopen ${stepLabel(stepB)}`;
   return {
     terms,
     answer,
-    explanation: `Twee verweven reeksen. De oneven posities lopen ${stepLabel(stepA)} (${startA}, ${startA + stepA}, ${startA + 2 * stepA}, ...), de even posities ${stepLabel(stepB)}. Het gevraagde getal hoort bij de eerste reeks: ${applied(startA + 2 * stepA, stepA)}.`,
+    explanation: `Twee verweven reeksen. De oneven posities lopen ${stepLabel(stepA)} (${startA}, ${startA + stepA}, ${startA + 2 * stepA}, ...), ${seriesB}. Het gevraagde getal hoort bij de eerste reeks: ${applied(startA + 2 * stepA, stepA)}.`,
     hint: `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 1e, 3e en 5e positie: ${startA}, ${startA + stepA}, ${startA + 2 * stepA}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`,
     family: 'interwoven',
     // De voortzetting van de tweede reeks is hier de klassieke valkuil.
@@ -336,9 +355,55 @@ function altOpsMinus(): NumericSeries {
   return altOps({ start, multiplier, addend: -randInt(2, Math.min(5, start * multiplier - 3)) });
 }
 
+// Machtreeksen (kwadraten, derdemachten, machten van 2) zijn de zwaarste vorm
+// die de generator kent. Ze blijven daarom bewust klein van getal: lage
+// startexponenten en een kleine verschuiving, zodat het patroon te herkennen is
+// zonder grote hoofdrekensommen.
+
+// Afwisselend keer en gedeeld door, met een factor die groter is dan de deler:
+// de reeks springt dus op en neer maar groeit netto. Bijvoorbeeld 3, 12, 6, 24,
+// 12, ? met x4 en :2. De deler is altijd een deler van de factor, zodat alle
+// termen hele getallen blijven.
+const MUL_DIV_PAIRS = [
+  { multiplier: 4, divisor: 2 },
+  { multiplier: 6, divisor: 2 },
+  { multiplier: 6, divisor: 3 },
+  { multiplier: 9, divisor: 3 },
+] as const;
+
+function altMulDiv(pairs: readonly { multiplier: number; divisor: number }[]): NumericSeries {
+  const { multiplier, divisor } = pick(pairs);
+  const terms = [randInt(2, 6)];
+  const ops: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    if (i % 2 === 0) {
+      terms.push(terms[i] * multiplier);
+      ops.push(`x${multiplier}`);
+    } else {
+      terms.push(terms[i] / divisor);
+      ops.push(`:${divisor}`);
+    }
+  }
+  const answer = terms[4] * multiplier;
+  return {
+    terms,
+    answer,
+    explanation: `De bewerkingen wisselen elkaar af: ${ops.join(', ')}, ... De volgende bewerking is x${multiplier}, dus ${terms[4]} x ${multiplier} = ${answer}.`,
+    hint: `De reeks gaat om en om flink omhoog en dan weer omlaag, maar wordt over het geheel groter. Deel eens: ${terms[1]} : ${terms[0]} en daarna ${terms[1]} : ${terms[2]}. Er wisselen twee bewerkingen elkaar af; bepaal welke nu aan de beurt is.`,
+    family: 'altmuldiv',
+    // De verkeerde bewerking pakken is hier de valkuil.
+    distractors: [
+      (terms[4] * multiplier) / divisor,
+      terms[4] * divisor,
+      terms[3] * multiplier,
+      answer + multiplier,
+    ],
+  };
+}
+
 function squares(): NumericSeries {
-  const first = randInt(2, 4);
-  const offset = randInt(-3, 3);
+  const first = randInt(2, 3);
+  const offset = randInt(-2, 2);
   const terms = Array.from({ length: 5 }, (_, i) => (first + i) ** 2 + offset);
   const n = first + 5;
   return {
@@ -354,8 +419,8 @@ function squares(): NumericSeries {
 }
 
 function cubes(): NumericSeries {
-  const first = randInt(2, 3);
-  const offset = randInt(-2, 2);
+  const first = 2; // 8, 27, 64, 125, 216, ... hoger wordt puur hoofdrekenen
+  const offset = randInt(-1, 1);
   const terms = Array.from({ length: 5 }, (_, i) => (first + i) ** 3 + offset);
   const n = first + 5;
   return {
@@ -371,11 +436,13 @@ function cubes(): NumericSeries {
   };
 }
 
-// Machten van 2 of 3 met een vaste verschuiving, bijvoorbeeld 1, 3, 7, 15, 31.
+// Machten van 2 met een vaste verschuiving, bijvoorbeeld 1, 3, 7, 15, 31.
+// Bewust alleen basis 2 en een lage startexponent: machten van 3 lopen binnen
+// vijf termen al richting 729 en dat maakt de vraag vooral rekenwerk.
 function powers(): NumericSeries {
-  const base = pick([2, 3]);
+  const base = 2;
   const offset = pick([-1, 1]);
-  const first = base === 2 ? randInt(1, 3) : randInt(1, 2);
+  const first = randInt(1, 2);
   const terms = Array.from({ length: 5 }, (_, i) => base ** (first + i) + offset);
   const exponent = first + 5;
   const answer = base ** exponent + offset;
@@ -438,12 +505,15 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
     () => arithmetic({ start: randInt(1, 9), step: randInt(2, 6) }),
     () => arithmetic({ start: randInt(15, 40), step: randInt(2, 6) }),
     () => arithmeticDown(2, 5),
+    () => arithmeticRound(10, 2), // tientallen, op en neer
     () => geometric([2], 3), // verdubbelen: even toegankelijk, ander uiterlijk
   ],
   2: [
     () => arithmetic({ start: randInt(1, 9), step: randInt(7, 15) }),
+    () => arithmetic({ start: randInt(40, 90), step: randInt(7, 15) }),
     () => arithmeticDown(7, 14),
     () => arithmeticThroughZero(3, 8),
+    () => arithmeticRound(25, 2), // kwartjes: 75, 125, 175, ...
     () => geometric([2, 3], 4),
     () => divide([2]), // halveren
   ],
@@ -451,6 +521,11 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
     arithmetic2Up,
     arithmetic2Down,
     () => divide([2, 3]),
+    () => arithmeticFromNegative(4, 9), // start onder nul, klimt er door heen
+    () => arithmeticRound(25, 4), // grotere ronde getallen
+    // Verweven reeks waarvan de tweede reeks steeds hetzelfde getal is: een
+    // heel ander beeld dan twee lopende reeksen.
+    () => interwoven({ startA: randInt(2, 12), stepA: randInt(3, 8), startB: randInt(2, 40), stepB: 0 }),
     () => {
       // Verschillende stappen, anders vallen beide reeksen samen tot een
       // simpele zigzag en klopt de uitleg niet meer.
@@ -482,7 +557,9 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
     altOpsPlus,
     altOpsMinus,
     arithmetic2Turning,
+    () => altMulDiv([MUL_DIV_PAIRS[0]]), // x4, :2: de lichtste van de vier
     () => geometric([3, 4], 4),
+    () => arithmeticFromNegative(9, 20), // grotere stappen, start onder nul
     () => recursiveIn({ startMin: 1, startMax: 3, multipliers: [2, 3], constants: [1, 2, 3, 4] }),
     () =>
       recursiveIn({ startMin: 3, startMax: 8, multipliers: [2, 3], constants: [-1, -2, -3, -4] }),
@@ -500,11 +577,13 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
     },
   ],
   5: [
-    squares,
-    cubes,
+    // De drie machtreeksen delen een plek in de lijst. Zo komt "herken de
+    // macht" ongeveer een op de zes vragen voorbij in plaats van drie keer zo
+    // vaak, terwijl de variatie binnen die vorm blijft bestaan.
+    () => pick([squares, cubes, powers])(),
     fibonacci,
     primes,
-    powers,
+    () => altMulDiv(MUL_DIV_PAIRS.slice(1)), // grotere factoren en delers
     () => geometric([-2, -3], 4),
     () => recursiveIn({ startMin: 2, startMax: 5, multipliers: [3, 4], constants: [-3, -5, 5, 7] }),
     () => interwoven({

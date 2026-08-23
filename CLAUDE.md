@@ -140,15 +140,19 @@ Regels die de tests bewaken (`__tests__/hints.test.ts`):
 ## Cijferpatronen: strategieen
 
 De numerieke generator gebruikt per niveau meerdere strategieen door elkaar, didactisch gegradeerd (zie `generators/numeric.ts`, `NumericFamily`):
-- N1: constante stap (+ en -), verdubbelen.
-- N2: grotere constante stap, dalende reeks die door nul zakt, constante factor (x2/x3), halveren.
-- N3: veranderende stap (oplopend/aflopend), delen (:2/:3), twee verweven reeksen, verweven reeks die door nul zakt, afwisselend +a en -b.
-- N4: afwisselend x en + of x en -, recursief (vorige x m + c, c mag negatief), grotere factor, stap die door nul kantelt, verweven met een dalende tweede reeks, zigzag die naar negatieve getallen zakt.
-- N5: kwadraten en derdemachten (met vaste verschuiving), machten van 2/3 (+/-1), Fibonacci, priemgetallen, negatieve factor (wisselend teken), zwaardere recursie en verweving.
+- N1: constante stap (+ en -), reeks van ronde tientallen (op en neer), verdubbelen.
+- N2: grotere constante stap (kleine en grotere startgetallen), dalende reeks die door nul zakt, reeks van kwartjes (25/50), constante factor (x2/x3), halveren.
+- N3: veranderende stap (oplopend/aflopend), delen (:2/:3), stijgende reeks die onder nul begint, grotere ronde getallen, twee verweven reeksen, verweven reeks met een constante tweede reeks, verweven reeks die door nul zakt, afwisselend +a en -b.
+- N4: afwisselend x en + of x en -, afwisselend x4 en :2, recursief (vorige x m + c, c mag negatief), grotere factor, stap die door nul kantelt, stijgende reeks vanaf een negatief startgetal, verweven met een dalende tweede reeks, zigzag die naar negatieve getallen zakt.
+- N5: Fibonacci, priemgetallen, negatieve factor (wisselend teken), afwisselend x en : met grotere factoren, zwaardere recursie en verweving, plus machtreeksen (kwadraten, derdemachten, machten van 2 met +/-1).
+
+**Variatie in getallen** is bewust breed: naast kleine reeksen komen op elk niveau ook reeksen met tientallen of honderdtallen voorbij (ronde getallen, negatieve startgetallen). `__tests__/numeric.test.ts` bewaakt dat elk niveau zowel kleine als grotere getallen oplevert, zodat opgaven niet altijd hetzelfde beeld hebben.
+
+Machtreeksen zijn de zwaarste vorm en komen daarom bewust weinig voor: de drie machtfamilies delen een plek in de niveau-5-lijst, dus samen ongeveer een op de zes vragen. Ze blijven ook klein van getal (lage startexponenten, kleine verschuiving, geen machten van 3), zodat de vraag om patroonherkenning gaat en niet om hoofdrekenen.
 
 Niveau 1 en 2 blijven bewust toegankelijk als instap (mbo 3-4); de variatie zit daar in het uiterlijk van de reeks, niet in de zwaarte. Vanaf niveau 3 lopen zowel het aantal families als de zwaarte op.
 
-**Negatieve getallen** komen vanaf niveau 2 voor en op elk niveau daarboven, didactisch opgebouwd: een dalende reeks die door nul zakt (N2), een verweven reeks die door nul zakt (N3), een zigzag naar negatief en negatieve constanten (N4), en tot slot een negatieve factor met wisselend teken (N5). Elk niveau vanaf 2 heeft minstens een strategie die gegarandeerd negatieve getallen oplevert; `__tests__/numeric.test.ts` bewaakt dat.
+**Negatieve getallen** komen vanaf niveau 2 voor en op elk niveau daarboven, didactisch opgebouwd: een dalende reeks die door nul zakt (N2), een verweven reeks die door nul zakt en een stijgende reeks vanaf een negatief startgetal (N3, ook op N4 met grotere stappen), een zigzag naar negatief en negatieve constanten (N4), en tot slot een negatieve factor met wisselend teken (N5). Elk niveau vanaf 2 heeft minstens een strategie die gegarandeerd negatieve getallen oplevert; `__tests__/numeric.test.ts` bewaakt dat.
 
 Elke familie heeft een onafhankelijke verificatie in `__tests__/numeric.test.ts` zodat het juiste antwoord eenduidig is.
 

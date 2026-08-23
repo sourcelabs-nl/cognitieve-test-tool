@@ -14,6 +14,7 @@ const ALL_FAMILIES: NumericFamily[] = [
   'interwoven',
   'recursive',
   'altops',
+  'altmuldiv',
   'squares',
   'cubes',
   'powers',
@@ -101,6 +102,18 @@ function expectedNext(family: NumericFamily, terms: number[]): number {
     return last * m; // volgende bewerking is opnieuw vermenigvuldigen
   }
 
+  if (family === 'altmuldiv') {
+    // Afwisselend x m en : d, met m groter dan d zodat de reeks netto groeit.
+    const m = terms[1] / terms[0];
+    const d = terms[1] / terms[2];
+    expect(Number.isInteger(m)).toBe(true);
+    expect(Number.isInteger(d)).toBe(true);
+    expect(m).toBeGreaterThan(d);
+    expect(terms[3]).toBe(terms[2] * m);
+    expect(terms[4]).toBe(terms[3] / d);
+    return last * m; // volgende bewerking is opnieuw vermenigvuldigen
+  }
+
   if (family === 'squares') {
     // Kwadraten (eventueel verschoven) hebben een constant tweede verschil van 2.
     const d2 = diffs(d1);
@@ -170,11 +183,27 @@ describe('cijferpatronen-generator', () => {
 
   // Niveau 1 blijft bewust smal (instap), daarboven moet er echte keuze zijn.
   it('elk niveau biedt meerdere families (variatie tegen herhaling)', () => {
-    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 3, 4: 4, 5: 5 };
+    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 5, 4: 7, 5: 6 };
     for (let level = 1; level <= 5; level++) {
       const seen = new Set<NumericFamily>();
       for (let i = 0; i < 500; i++) seen.add(buildNumericSeries(level).family);
       expect(seen.size).toBeGreaterThanOrEqual(minimum[level]);
+    }
+  });
+
+  // De opgaven moeten niet altijd uit dezelfde kleine getallen bestaan: op elk
+  // niveau komen ook reeksen met tientallen of hoger voorbij.
+  it('elk niveau kent zowel kleine als grotere getallen', () => {
+    for (let level = 1; level <= 5; level++) {
+      let small = false;
+      let large = false;
+      for (let i = 0; i < 500; i++) {
+        const highest = Math.max(...buildNumericSeries(level).terms.map(Math.abs));
+        if (highest <= 30) small = true;
+        if (highest >= 100) large = true;
+      }
+      expect(small).toBe(true);
+      expect(large).toBe(true);
     }
   });
 
