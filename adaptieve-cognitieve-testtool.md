@@ -71,7 +71,7 @@ Voor v1 een staircase-heuristiek, met een ontwerp dat een latere IRT-upgrade nie
 
 ### Stop en score
 
-- Stopcriterium: vast aantal items (15 tot 20) of een stabiele schatting (minimale stapgrootte bereikt).
+- Stopcriterium: een vast aantal items. Stoppen zodra de stapgrootte de ondergrens bereikt klinkt aantrekkelijk, maar dat criterium wordt in een korte sessie al na een paar richtingsomkeringen gehaald en levert dan verrassend korte sessies op.
 - Eindscore per categorie: de uiteindelijke niveau-schatting, het percentage goed en de gemiddelde responstijd.
 
 ### Latere upgrade naar IRT / CAT

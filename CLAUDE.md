@@ -105,7 +105,7 @@ Houd methodes wetenschappelijk verantwoord, maar simpel in gebruik (de complexit
 - Stapgrootte halveert bij elke richtingsomkering, ondergrens ~0.1, zodat de schatting inschommelt rond het werkelijke niveau.
 - Optioneel: snel+goed iets grotere opstap (responstijd-weging).
 - Generatie-niveau = afgeronde schatting (1..5).
-- Stop: 15 items óf stabiele schatting (stap op ondergrens).
+- Stop: altijd na 15 items. Er is bewust geen vroegtijdige stop op "stabiele schatting" (stap op ondergrens): de stap zakt al na drie richtingsomkeringen naar de ondergrens, waardoor vrijwel elke sessie precies bij vraag 10 afbrak terwijl de teller "van 15" toonde.
 - Eindscore: schatting, % goed, gemiddelde responstijd.
 
 ## Feedback & voortgang

@@ -84,13 +84,27 @@ describe('staircase-algoritme', () => {
     expect(state.estimate).toBeLessThanOrEqual(1.5);
   });
 
-  it('stopt na maximaal MAX_ITEMS items', () => {
-    let state = createSession('numeric', 'test');
-    while (!state.finished) {
-      const { item, chosenIndex } = fakeItem(nextLevel(state), true);
-      state = applyAnswer(state, { item, chosenIndex, responseMs: 8000 });
+  it('stopt pas na precies MAX_ITEMS items, ongeacht het antwoordpatroon', () => {
+    // Afwisselend goed en fout levert direct richtingsomkeringen op, waardoor
+    // de stapgrootte snel op de ondergrens komt. Ook dan moet de sessie
+    // gewoon doorlopen tot de laatste vraag.
+    const patterns: Array<(i: number) => boolean> = [
+      () => true,
+      () => false,
+      (i) => i % 2 === 0,
+      (i) => i % 3 !== 0,
+    ];
+
+    for (const isCorrect of patterns) {
+      let state = createSession('numeric', 'test');
+      let i = 0;
+      while (!state.finished) {
+        const { item, chosenIndex } = fakeItem(nextLevel(state), isCorrect(i));
+        state = applyAnswer(state, { item, chosenIndex, responseMs: 8000 });
+        i += 1;
+      }
+      expect(state.answers.length).toBe(MAX_ITEMS);
     }
-    expect(state.answers.length).toBeLessThanOrEqual(MAX_ITEMS);
   });
 
   it('sterke kandidaten eindigen hoger dan zwakke (gemiddeld over seeds)', () => {

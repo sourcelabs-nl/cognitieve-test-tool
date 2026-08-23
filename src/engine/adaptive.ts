@@ -17,9 +17,11 @@ import {
 
 export const INITIAL_ESTIMATE = 2.5;
 export const INITIAL_STEP = 0.8;
-export const MIN_STEP = 0.1; // ondergrens; bij deze stap is de schatting stabiel
+export const MIN_STEP = 0.1; // ondergrens voor de stapgrootte
 export const TARGET_CORRECT = 0.75; // gewenst slagingspercentage
-export const MIN_ITEMS = 10;
+// Elke sessie telt evenveel vragen. Een sessie eerder afbreken zodra de stap
+// op de ondergrens staat leverde in de praktijk bijna altijd precies 10 vragen
+// op, wat voor de gebruiker als een onverwachte afbreking voelde.
 export const MAX_ITEMS = 15;
 
 // Verhouding opstap/neerstap. Bij evenwicht geldt p*up = (1-p)*down, dus
@@ -94,8 +96,7 @@ export function applyAnswer(state: SessionState, input: AnswerInput): SessionSta
   };
 
   const answers = [...state.answers, answer];
-  const stable = nextStep <= MIN_STEP && answers.length >= MIN_ITEMS;
-  const finished = answers.length >= MAX_ITEMS || stable;
+  const finished = answers.length >= MAX_ITEMS;
 
   return {
     ...state,
