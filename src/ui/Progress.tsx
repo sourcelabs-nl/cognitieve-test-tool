@@ -1,12 +1,14 @@
 // Voortgangsscherm: per categorie het niveauverloop, geplot op de dagen van een
 // 7-daags venster dat je terug en vooruit kunt schuiven.
 
-import { useState } from 'react';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowLeft, ChevronLeft, ChevronRight, ClipboardCheck } from 'lucide-react';
 import type { Category, Profile } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { bestScoreForCategory, formatDateTime, resultsForCategory } from '../storage/history';
 import { addDays, pointsInWindow, startOfDay } from '../engine/dateWindow';
+import { assessProgress } from '../engine/assessment';
+import { AssessmentPanel } from './AssessmentPanel';
 import { DailyLevelChart } from './DailyLevelChart';
 
 interface Props {
@@ -25,6 +27,8 @@ export function Progress({ profile, onBack }: Props) {
   // Vandaag eenmalig vastleggen; offset in dagen bepaalt het venster.
   const [today] = useState(() => startOfDay(new Date()));
   const [offset, setOffset] = useState(0);
+  const [showAssessment, setShowAssessment] = useState(false);
+  const assessment = useMemo(() => assessProgress(profile, today), [profile, today]);
 
   const windowStart = addDays(today, -(WINDOW_DAYS - 1) - offset);
   const windowEnd = addDays(windowStart, WINDOW_DAYS - 1);
@@ -46,6 +50,17 @@ export function Progress({ profile, onBack }: Props) {
         <p className="muted">Nog geen afgeronde sessies. Oefen eerst een categorie om je voortgang te zien.</p>
       ) : (
         <>
+          <div className="footer-actions assessment-actions">
+            <button
+              className="btn"
+              onClick={() => setShowAssessment(!showAssessment)}
+              aria-expanded={showAssessment}
+            >
+              <ClipboardCheck size={18} /> Beoordeel mijn voortgang
+            </button>
+          </div>
+          {showAssessment && <AssessmentPanel assessment={assessment} />}
+
           <div className="window-nav">
             <button className="icon-button" onClick={() => setOffset(offset + WINDOW_DAYS)} aria-label="Eerdere week" title="Eerdere week">
               <ChevronLeft size={18} />
