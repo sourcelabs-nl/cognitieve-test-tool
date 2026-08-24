@@ -560,6 +560,54 @@ button {
   margin-top: 24px;
 }
 
+/* Beoordeling van de voortgang */
+.assessment-actions {
+  margin-top: 16px;
+}
+
+.assessment {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--accent-soft);
+}
+
+.assessment-block {
+  margin-top: 16px;
+}
+
+.assessment-block h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.assessment-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.assessment-list li {
+  margin-bottom: 8px;
+}
+
+.assessment-next {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.assessment-next svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
 /* Navigatie van het 7-daagse venster */
 .window-nav {
   display: flex;
@@ -811,6 +859,41 @@ button {
   border-radius: 12px;
   box-shadow: var(--shadow);
   padding: 12px 14px;
+}
+
+/* "Wat is nieuw?"-kaart bij een nieuwe versie */
+.whats-new {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.whats-new h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.whats-new-release {
+  margin-top: 8px;
+}
+
+.whats-new-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.whats-new-list li {
+  margin-bottom: 8px;
+}
+
+.whats-new .footer-actions {
+  margin-top: 16px;
 }
 
 /* "Wist je dat..."-kaart */

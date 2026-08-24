@@ -5,6 +5,8 @@ import { useState } from 'react';
 import type { Category, Mode, Profile, SessionResult } from './engine/types';
 import { addResult, startEstimateForCategory } from './storage/history';
 import { getProfile, setAvatar } from './storage/profiles';
+import { markVersionSeen, newReleases } from './storage/appVersion';
+import { WhatsNew } from './ui/WhatsNew';
 import { ProfileSelect } from './ui/ProfileSelect';
 import { CategorySelect } from './ui/CategorySelect';
 import { SessionIntro } from './ui/SessionIntro';
@@ -29,6 +31,14 @@ export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [config, setConfig] = useState<SessionConfig | null>(null);
   const [lastResult, setLastResult] = useState<SessionResult | null>(null);
+  // Eenmalig bij het laden bepalen; daarna verdwijnt de kaart pas als de
+  // gebruiker hem wegklikt.
+  const [releases, setReleases] = useState(newReleases);
+
+  const dismissWhatsNew = () => {
+    markVersionSeen();
+    setReleases([]);
+  };
 
   const handleSelectProfile = (p: Profile) => {
     setProfile(p);
@@ -62,6 +72,8 @@ export default function App() {
   return (
     <main className="app">
       <PwaUpdater />
+
+      <WhatsNew releases={releases} onDismiss={dismissWhatsNew} />
 
       {screen === 'profile' && <ProfileSelect onSelect={handleSelectProfile} />}
 
