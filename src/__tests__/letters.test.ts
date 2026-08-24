@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { MAX_LEVEL } from '../engine/types';
 import {
   buildLetterSeries,
   generateLetters,
@@ -17,8 +18,13 @@ const ALL_FAMILIES: LetterFamily[] = [
   'mirror',
   'pairs',
   'pairsMirror',
+  'pairsChanging',
+  'doublingStep',
+  'primePositions',
   'fibStep',
 ];
+
+const PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
 
 function idx(letter: string): number {
   return letter.charCodeAt(0) - 65;
@@ -43,6 +49,21 @@ function normalise(index: number): number {
 // De assertions controleren tegelijk dat de reeks echt bij die familie hoort.
 function expectedAnswer(series: LetterSeries): string {
   const { family, tokens } = series;
+
+  if (family === 'pairsChanging') {
+    // De eerste letters versnellen (constant tweede verschil), de tweede
+    // letters houden een vaste stap.
+    const firsts = tokens.map((t) => idx(t[0]));
+    const seconds = tokens.map((t) => idx(t[1]));
+    const firstDiffs = forwardDiffs(firsts);
+    const increments = firstDiffs.slice(1).map((d, i) => d - firstDiffs[i]);
+    for (const inc of increments) expect(inc).toBe(increments[0]);
+    expect(increments[0]).toBeGreaterThan(0);
+    const secondDiffs = forwardDiffs(seconds);
+    for (const d of secondDiffs) expect(d).toBe(secondDiffs[0]);
+    const nextFirst = firsts[4] + firstDiffs[3] + increments[0];
+    return letterAt(nextFirst) + letterAt(seconds[4] + secondDiffs[0]);
+  }
 
   if (family === 'pairs' || family === 'pairsMirror') {
     // Beide letters van het paar vormen elk een eigen reeks met vaste stap.
@@ -80,6 +101,21 @@ function expectedAnswer(series: LetterSeries): string {
     return letterAt(last + diffs[2] + diffs[3]);
   }
 
+  if (family === 'doublingStep') {
+    const diffs = forwardDiffs(p);
+    for (let i = 1; i < diffs.length; i++) expect(diffs[i]).toBe(diffs[i - 1] * 2);
+    return letterAt(last + diffs[3] * 2);
+  }
+
+  if (family === 'primePositions') {
+    // De plaatsen in het alfabet (1-gebaseerd) zijn opeenvolgende priemgetallen.
+    const values = p.map((position) => position + 1);
+    const start = PRIMES.indexOf(values[0]);
+    expect(start).toBeGreaterThanOrEqual(0);
+    values.forEach((value, i) => expect(value).toBe(PRIMES[start + i]));
+    return letterAt(PRIMES[start + 5] - 1);
+  }
+
   if (family === 'alternating' || family === 'zigzag') {
     const diffs = forwardDiffs(p);
     expect(diffs[2]).toBe(diffs[0]);
@@ -101,7 +137,7 @@ function expectedAnswer(series: LetterSeries): string {
 }
 
 describe('letterpatronen-generator', () => {
-  for (let level = 1; level <= 5; level++) {
+  for (let level = 1; level <= MAX_LEVEL; level++) {
     it(`niveau ${level}: opgegeven antwoord klopt met onafhankelijke afleiding (300 trekkingen)`, () => {
       for (let i = 0; i < 300; i++) {
         const series = buildLetterSeries(level);
@@ -110,7 +146,7 @@ describe('letterpatronen-generator', () => {
     });
   }
 
-  for (let level = 1; level <= 5; level++) {
+  for (let level = 1; level <= MAX_LEVEL; level++) {
     it(`niveau ${level}: item heeft 4 unieke opties met het juiste antwoord (300 trekkingen)`, () => {
       for (let i = 0; i < 300; i++) {
         const item = generateLetters(level);
@@ -131,15 +167,15 @@ describe('letterpatronen-generator', () => {
 
   it('elke verwachte familie komt voor in de generator', () => {
     const seen = new Set<LetterFamily>();
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       for (let i = 0; i < 500; i++) seen.add(buildLetterSeries(level).family);
     }
     for (const family of ALL_FAMILIES) expect(seen.has(family)).toBe(true);
   });
 
   it('elk niveau biedt meerdere families (variatie tegen herhaling)', () => {
-    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 5 };
-    for (let level = 1; level <= 5; level++) {
+    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6 };
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       const seen = new Set<LetterFamily>();
       for (let i = 0; i < 500; i++) seen.add(buildLetterSeries(level).family);
       expect(seen.size).toBeGreaterThanOrEqual(minimum[level]);

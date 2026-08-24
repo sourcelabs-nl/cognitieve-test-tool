@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { MAX_LEVEL } from '../engine/types';
 import {
   buildNumericSeries,
   generateNumeric,
@@ -12,6 +13,12 @@ const ALL_FAMILIES: NumericFamily[] = [
   'arithmetic2',
   'zigzag',
   'interwoven',
+  'interwoven3',
+  'interwovengeo',
+  'geodiff',
+  'products',
+  'tribonacci',
+  'fibminus',
   'recursive',
   'altops',
   'altmuldiv',
@@ -85,6 +92,59 @@ function expectedNext(family: NumericFamily, terms: number[]): number {
     return seriesA[2] + stepA; // het gevraagde getal hoort bij reeks A
   }
 
+  if (family === 'interwoven3') {
+    // Drie reeksen door elkaar: elke derde term hoort bij dezelfde reeks.
+    for (let offset = 0; offset < 3; offset++) {
+      const series = [terms[offset], terms[offset + 3], terms[offset + 6]];
+      expect(series[2] - series[1]).toBe(series[1] - series[0]);
+    }
+    const seriesA = [terms[0], terms[3], terms[6]];
+    return seriesA[2] + (seriesA[1] - seriesA[0]); // het gevraagde getal hoort bij reeks A
+  }
+
+  if (family === 'interwovengeo') {
+    // Reeks A (oneven posities) vermenigvuldigt, reeks B (even posities) telt op.
+    const seriesA = [terms[0], terms[2], terms[4]];
+    const ratio = seriesA[1] / seriesA[0];
+    expect(Number.isInteger(ratio)).toBe(true);
+    expect(seriesA[2]).toBe(seriesA[1] * ratio);
+    const seriesB = [terms[1], terms[3], terms[5]];
+    expect(seriesB[2] - seriesB[1]).toBe(seriesB[1] - seriesB[0]);
+    return seriesA[2] * ratio;
+  }
+
+  if (family === 'geodiff') {
+    // De verschillen hebben zelf een vaste factor.
+    const ratio = d1[1] / d1[0];
+    expect(Number.isInteger(ratio)).toBe(true);
+    for (let i = 1; i < d1.length; i++) expect(d1[i]).toBe(d1[i - 1] * ratio);
+    return last + d1[d1.length - 1] * ratio;
+  }
+
+  if (family === 'products') {
+    // Elke term is k x (k+1) voor opeenvolgende k.
+    const factorOf = (value: number): number => Math.round((Math.sqrt(4 * value + 1) - 1) / 2);
+    const factors = terms.map(factorOf);
+    for (let i = 0; i < terms.length; i++) {
+      expect(factors[i] * (factors[i] + 1)).toBe(terms[i]);
+      if (i > 0) expect(factors[i]).toBe(factors[i - 1] + 1);
+    }
+    const n = factors[factors.length - 1] + 1;
+    return n * (n + 1);
+  }
+
+  if (family === 'tribonacci') {
+    for (let i = 3; i < terms.length; i++) {
+      expect(terms[i]).toBe(terms[i - 1] + terms[i - 2] + terms[i - 3]);
+    }
+    return terms[2] + terms[3] + last;
+  }
+
+  if (family === 'fibminus') {
+    for (let i = 2; i < terms.length; i++) expect(terms[i]).toBe(terms[i - 1] - terms[i - 2]);
+    return last - terms[terms.length - 2];
+  }
+
   if (family === 'recursive') {
     const m = (terms[2] - terms[1]) / (terms[1] - terms[0]);
     const c = terms[1] - terms[0] * m;
@@ -150,7 +210,7 @@ function expectedNext(family: NumericFamily, terms: number[]): number {
 }
 
 describe('cijferpatronen-generator', () => {
-  for (let level = 1; level <= 5; level++) {
+  for (let level = 1; level <= MAX_LEVEL; level++) {
     it(`niveau ${level}: opgegeven antwoord klopt voor elke strategie (500 trekkingen)`, () => {
       for (let i = 0; i < 500; i++) {
         const series = buildNumericSeries(level);
@@ -159,7 +219,7 @@ describe('cijferpatronen-generator', () => {
     });
   }
 
-  for (let level = 1; level <= 5; level++) {
+  for (let level = 1; level <= MAX_LEVEL; level++) {
     it(`niveau ${level}: item heeft 4 unieke opties met het juiste antwoord (300 trekkingen)`, () => {
       for (let i = 0; i < 300; i++) {
         const item = generateNumeric(level);
@@ -175,7 +235,7 @@ describe('cijferpatronen-generator', () => {
 
   it('elke verwachte familie komt voor in de generator', () => {
     const seen = new Set<NumericFamily>();
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       for (let i = 0; i < 500; i++) seen.add(buildNumericSeries(level).family);
     }
     for (const family of ALL_FAMILIES) expect(seen.has(family)).toBe(true);
@@ -183,8 +243,8 @@ describe('cijferpatronen-generator', () => {
 
   // Niveau 1 blijft bewust smal (instap), daarboven moet er echte keuze zijn.
   it('elk niveau biedt meerdere families (variatie tegen herhaling)', () => {
-    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 5, 4: 7, 5: 6 };
-    for (let level = 1; level <= 5; level++) {
+    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 5, 4: 8, 5: 6, 6: 7 };
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       const seen = new Set<NumericFamily>();
       for (let i = 0; i < 500; i++) seen.add(buildNumericSeries(level).family);
       expect(seen.size).toBeGreaterThanOrEqual(minimum[level]);
@@ -194,7 +254,7 @@ describe('cijferpatronen-generator', () => {
   // De opgaven moeten niet altijd uit dezelfde kleine getallen bestaan: op elk
   // niveau komen ook reeksen met tientallen of hoger voorbij.
   it('elk niveau kent zowel kleine als grotere getallen', () => {
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       let small = false;
       let large = false;
       for (let i = 0; i < 500; i++) {
@@ -216,6 +276,6 @@ describe('cijferpatronen-generator', () => {
       return false;
     };
     expect(hasNegative(1, 500)).toBe(false);
-    for (let level = 2; level <= 5; level++) expect(hasNegative(level, 500)).toBe(true);
+    for (let level = 2; level <= MAX_LEVEL; level++) expect(hasNegative(level, 500)).toBe(true);
   });
 });

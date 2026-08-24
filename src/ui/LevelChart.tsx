@@ -1,4 +1,4 @@
-// Eenvoudige SVG-lijngrafiek voor een niveauverloop (waarden 1..5).
+// Eenvoudige SVG-lijngrafiek voor een niveauverloop (waarden 1..MAX_LEVEL).
 // Geen externe library; bewust minimaal gehouden.
 
 import { MIN_LEVEL, MAX_LEVEL } from '../engine/types';
@@ -21,7 +21,7 @@ export function LevelChart({ values, width = 480, height = 200, label }: Props) 
     padding.top + innerH - ((v - MIN_LEVEL) / (MAX_LEVEL - MIN_LEVEL)) * innerH;
 
   const points = values.map((v, i) => `${x(i)},${y(v)}`).join(' ');
-  const gridLevels = [1, 2, 3, 4, 5];
+  const gridLevels = Array.from({ length: MAX_LEVEL - MIN_LEVEL + 1 }, (_, i) => MIN_LEVEL + i);
 
   return (
     <figure className="level-chart">

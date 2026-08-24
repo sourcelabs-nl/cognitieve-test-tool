@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { MAX_LEVEL } from '../engine/types';
 import { generate } from '../generators';
 import { STRATEGY_HINTS } from '../generators/hints';
 import { verbalBank, verbalHintStep } from '../generators/verbal';
@@ -9,7 +10,7 @@ const CATEGORIES: ItemCategory[] = ['numeric', 'letters', 'verbal'];
 describe('getrapte hulp bij items', () => {
   it('elk item heeft beide tredes hulp gevuld', () => {
     for (const category of CATEGORIES) {
-      for (let level = 1; level <= 5; level++) {
+      for (let level = 1; level <= MAX_LEVEL; level++) {
         for (let i = 0; i < 200; i++) {
           const item = generate(category, level);
           expect(item.hint.strategy.length).toBeGreaterThan(40);
@@ -23,7 +24,7 @@ describe('getrapte hulp bij items', () => {
   // dan verklapte hij welke familie eronder zit en was de vraag half opgelost.
   it('de eerste trede is de vaste tekst van de categorie', () => {
     for (const category of CATEGORIES) {
-      for (let level = 1; level <= 5; level++) {
+      for (let level = 1; level <= MAX_LEVEL; level++) {
         const item = generate(category, level);
         expect(item.hint.strategy).toBe(STRATEGY_HINTS[category]);
       }
@@ -32,7 +33,7 @@ describe('getrapte hulp bij items', () => {
 
   it('de tweede trede is niet simpelweg de uitleg van het antwoord', () => {
     for (const category of CATEGORIES) {
-      for (let level = 1; level <= 5; level++) {
+      for (let level = 1; level <= MAX_LEVEL; level++) {
         for (let i = 0; i < 200; i++) {
           const item = generate(category, level);
           expect(item.hint.step).not.toBe(item.explanation);
@@ -47,7 +48,7 @@ describe('getrapte hulp bij items', () => {
   // dat is precies de stap die de gebruiker zelf moet doen.
   it('de hint rekent het antwoord niet voor', () => {
     for (const category of CATEGORIES) {
-      for (let level = 1; level <= 5; level++) {
+      for (let level = 1; level <= MAX_LEVEL; level++) {
         for (let i = 0; i < 300; i++) {
           const item = generate(category, level);
           const answer = item.options[item.correctIndex];

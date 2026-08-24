@@ -1,7 +1,7 @@
 // Woordrelaties: gecureerde itembank met analogieen "A : B = C : ?".
 // Niet on-the-fly genereren; kwaliteit is handmatig geborgd in verbal.json.
 
-import type { Item } from '../engine/types';
+import { MAX_LEVEL, MIN_LEVEL, type Item } from '../engine/types';
 import { shuffle } from './random';
 import { STRATEGY_HINTS } from './hints';
 import bank from '../data/verbal.json';
@@ -28,7 +28,7 @@ function entryKey(entry: VerbalEntry): number {
 
 // Kiest het dichtstbijzijnde niveau waarvoor nog items bestaan.
 function poolForLevel(level: number): VerbalEntry[] {
-  for (let radius = 0; radius < 5; radius++) {
+  for (let radius = 0; radius < MAX_LEVEL; radius++) {
     for (const candidate of [level - radius, level + radius]) {
       const pool = entries.filter((e) => e.level === candidate);
       if (pool.length > 0) return pool;
@@ -52,7 +52,7 @@ export function verbalHintStep(entry: VerbalEntry): string {
 let counter = 0;
 
 export function generateVerbal(level: number): Item {
-  const clamped = Math.min(5, Math.max(1, Math.round(level)));
+  const clamped = Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
   const pool = poolForLevel(clamped);
 
   let available = pool.filter((e) => !recentlyUsed.has(entryKey(e)));

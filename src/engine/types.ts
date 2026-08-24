@@ -9,7 +9,7 @@ export type ItemCategory = Exclude<Category, 'mixed'>;
 export type Mode = 'practice' | 'test';
 
 export const MIN_LEVEL = 1;
-export const MAX_LEVEL = 5;
+export const MAX_LEVEL = 6;
 
 // Getrapte hulp bij een item, opvraagbaar tijdens het oefenen. Geen van beide
 // teksten noemt het antwoord: samen doen ze de eerste denkstap voor, de laatste
@@ -22,7 +22,7 @@ export interface Hint {
 export interface Item {
   id: string;
   category: ItemCategory;
-  level: number; // 1..5, moeilijkheid van dit item
+  level: number; // 1..6, moeilijkheid van dit item
   prompt: string; // vraagtekst
   options: string[]; // meerkeuze-opties
   correctIndex: number; // index van het juiste antwoord in options
@@ -43,7 +43,7 @@ export interface Answer {
 export interface SessionState {
   category: Category;
   mode: Mode;
-  estimate: number; // continue niveau-schatting 1.0..5.0
+  estimate: number; // continue niveau-schatting 1.0..6.0
   stepSize: number; // huidige staircase-stap
   lastDirection: 'up' | 'down' | null; // voor detectie van richtingsomkeringen
   answers: Answer[];
@@ -55,7 +55,7 @@ export interface SessionResult {
   id: string;
   category: Category;
   mode: Mode;
-  finalEstimate: number; // eind-niveauschatting 1.0..5.0
+  finalEstimate: number; // eind-niveauschatting 1.0..6.0
   percentCorrect: number; // 0..100
   averageResponseMs: number;
   itemCount: number;

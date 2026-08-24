@@ -1,4 +1,4 @@
-// Cijferpatronen: procedureel gegenereerde getallenreeksen op niveau 1..5.
+// Cijferpatronen: procedureel gegenereerde getallenreeksen op niveau 1..6.
 // Per niveau zijn er meerdere strategieen die door elkaar worden gebruikt, zo
 // gekozen dat ze didactisch even zwaar zijn. De gebruiker krijgt dus variatie
 // (optellen, aftrekken, vermenigvuldigen, delen, veranderende stap, wisselende
@@ -13,7 +13,7 @@
 // De familie (family) van elke reeks maakt onafhankelijke validatie in de tests
 // mogelijk.
 
-import type { Item } from '../engine/types';
+import { MAX_LEVEL, MIN_LEVEL, type Item } from '../engine/types';
 import { randInt, pick, buildOptions } from './random';
 import { stepLabel } from './format';
 import { STRATEGY_HINTS } from './hints';
@@ -25,6 +25,12 @@ export type NumericFamily =
   | 'arithmetic2' // veranderende stap (oplopend of aflopend)
   | 'zigzag' // afwisselend +a en -b
   | 'interwoven' // twee verweven reeksen
+  | 'interwoven3' // drie verweven reeksen
+  | 'interwovengeo' // verweven: de eerste reeks vermenigvuldigt, de tweede telt op
+  | 'geodiff' // de verschillen worden telkens een vast aantal keer zo groot
+  | 'products' // product van twee opeenvolgende getallen
+  | 'tribonacci' // som van de drie voorgaande
+  | 'fibminus' // vorige min de term daarvoor
   | 'recursive' // vorige x m + c (c mag negatief zijn)
   | 'altops' // afwisselend x en + (of -)
   | 'altmuldiv' // afwisselend x en : , netto groeiend
@@ -78,6 +84,12 @@ function shifted(base: string, offset: number): string {
 function offsetWord(offset: number): string {
   if (offset === 0) return '';
   return `, telkens ${offset < 0 ? `min ${-offset}` : `plus ${offset}`}`;
+}
+
+// Zet haakjes om een negatief getal, zodat "-4 - -9" leesbaar blijft als
+// "(-4) - (-9)".
+function paren(value: number): string {
+  return value < 0 ? `(${value})` : `${value}`;
 }
 
 // --- Strategieen ---
@@ -265,6 +277,160 @@ function interwoven({ startA, stepA, startB, stepB }: InterwovenOptions): Numeri
   };
 }
 
+interface Interwoven3Options {
+  startA: number;
+  stepA: number;
+  startB: number;
+  stepB: number;
+  startC: number;
+  stepC: number;
+}
+
+// Drie reeksen die om en om staan: elk derde getal hoort bij dezelfde reeks.
+// Het gevraagde getal hoort altijd bij reeks A (de posities 1, 4 en 7).
+function interwoven3(o: Interwoven3Options): NumericSeries {
+  const a = [0, 1, 2].map((i) => o.startA + i * o.stepA);
+  const b = [0, 1, 2].map((i) => o.startB + i * o.stepB);
+  const c = [0, 1, 2].map((i) => o.startC + i * o.stepC);
+  const terms = [a[0], b[0], c[0], a[1], b[1], c[1], a[2], b[2], c[2]];
+  const answer = o.startA + 3 * o.stepA;
+  return {
+    terms,
+    answer,
+    explanation: `Drie verweven reeksen: elk derde getal hoort bij dezelfde reeks. De eerste reeks is ${a.join(', ')} en loopt ${stepLabel(o.stepA)}, de tweede loopt ${stepLabel(o.stepB)} en de derde ${stepLabel(o.stepC)}. Het gevraagde getal hoort bij de eerste reeks: ${applied(a[2], o.stepA)}.`,
+    hint: `Twee reeksen door elkaar levert hier niets op, probeer er drie. Kijk alleen naar het 1e, 4e en 7e getal: ${a.join(', ')}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`,
+    family: 'interwoven3',
+    // De voortzetting van de verkeerde reeks is hier de valkuil.
+    distractors: [c[2] + o.stepC, b[2] + o.stepB, answer + o.stepA, answer + 1, answer - 1],
+  };
+}
+
+// Bouwt drie verweven reeksen met onderling verschillende stappen, zodat er
+// maar een lezing van de reeks mogelijk is.
+function interwoven3In(range: { startMin: number; startMax: number }): NumericSeries {
+  const stepA = randInt(3, 9);
+  const stepB = -randInt(3, 9);
+  let stepC = randInt(2, 10);
+  while (stepC === stepA) stepC = randInt(2, 10);
+  return interwoven3({
+    startA: randInt(range.startMin, range.startMax),
+    stepA,
+    startB: randInt(40, 80),
+    stepB,
+    startC: randInt(range.startMin, range.startMax),
+    stepC,
+  });
+}
+
+// Verweven reeks waarvan de eerste reeks vermenigvuldigt en de tweede optelt.
+// De twee reeksen vragen dus om een verschillende bewerking; dat maakt hem
+// zwaarder dan twee verweven reeksen met een vaste stap.
+function interwovenGeo(): NumericSeries {
+  const ratio = pick([2, 3]);
+  const startA = randInt(2, 5);
+  const startB = randInt(40, 80);
+  const stepB = -randInt(5, 12);
+  const a = [0, 1, 2].map((i) => startA * ratio ** i);
+  const b = [0, 1, 2].map((i) => startB + i * stepB);
+  const answer = startA * ratio ** 3;
+  return {
+    terms: [a[0], b[0], a[1], b[1], a[2], b[2]],
+    answer,
+    explanation: `Twee verweven reeksen. De oneven posities gaan telkens keer ${ratio} (${a.join(', ')}, ...), de even posities lopen ${stepLabel(stepB)}. Het gevraagde getal hoort bij de eerste reeks: ${a[2]} x ${ratio} = ${answer}.`,
+    hint: `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 1e, 3e en 5e positie: ${a.join(', ')}. Let op: die reeks heeft geen vaste stap, dus probeer daar te delen. Het gevraagde getal hoort bij die reeks.`,
+    family: 'interwovengeo',
+    distractors: [b[2] + stepB, a[2] * (ratio + 1), a[2] + (a[2] - a[1]), answer + ratio],
+  };
+}
+
+interface GeoDiffOptions {
+  start: number;
+  firstDiff: number;
+  ratio: number; // waarmee het verschil elke stap groeit
+}
+
+// Reeks waarvan niet de getallen zelf, maar de verschillen een vaste factor
+// hebben: 4, 7, 13, 25, 49, ... Het startgetal is vrij gekozen, dus er zijn
+// geen herkenbare machten zichtbaar; dat maakt hem lastiger dan een machtreeks.
+function geoDiff({ start, firstDiff, ratio }: GeoDiffOptions): NumericSeries {
+  const terms = [start];
+  let diff = firstDiff;
+  for (let i = 0; i < 4; i++) {
+    terms.push(terms[i] + diff);
+    diff *= ratio;
+  }
+  const answer = terms[4] + diff;
+  return {
+    terms,
+    answer,
+    explanation: `De verschillen worden elke keer ${ratio} keer zo groot: ${diffList(terms)}, ... De volgende stap is ${stepLabel(diff)}, dus ${applied(terms[4], diff)}.`,
+    hint: `De verschillen tussen de getallen zijn ${diffList(terms)}. Die stappen blijven niet gelijk en lopen ook niet met een vast bedrag op. Deel ze eens door elkaar: ${firstDiff * ratio} : ${firstDiff}. Bepaal zo eerst de volgende stap.`,
+    family: 'geodiff',
+    // De stap gelijk houden of een stap te ver springen zijn de valkuilen.
+    distractors: [terms[4] + diff / ratio, terms[4] + diff * ratio, answer + ratio, answer + 1],
+  };
+}
+
+// Producten van twee opeenvolgende getallen: 6, 12, 20, 30, 42, ...
+function products(): NumericSeries {
+  const first = randInt(2, 4);
+  const factor = (i: number): number => first + i;
+  const terms = Array.from({ length: 5 }, (_, i) => factor(i) * (factor(i) + 1));
+  const n = factor(5);
+  const answer = n * (n + 1);
+  return {
+    terms,
+    answer,
+    explanation: `Elk getal is het product van twee opeenvolgende getallen: ${terms
+      .map((_, i) => `${factor(i)} x ${factor(i) + 1}`)
+      .join(', ')}, ... De volgende is ${n} x ${n + 1} = ${answer}.`,
+    hint: `De verschillen zijn ${diffList(terms)}: die lopen steeds met 2 op. Probeer elk getal te schrijven als een vermenigvuldiging van twee getallen die vlak naast elkaar liggen; kijk daarvoor eerst naar ${terms[0]} en daarna naar ${terms[1]}.`,
+    family: 'products',
+    // Kwadraten in plaats van producten, of het verschil gelijk houden.
+    distractors: [terms[4] + (terms[4] - terms[3]), n * n, (n + 1) * (n + 2), answer + 2],
+  };
+}
+
+// Som van de drie voorgaande termen. Zwaarder dan Fibonacci, omdat twee
+// getallen optellen hier juist niet uitkomt.
+function tribonacci(): NumericSeries {
+  const a = randInt(1, 4);
+  const b = randInt(1, 5);
+  // c mag niet de som van a en b zijn: dan lijkt het begin op Fibonacci.
+  const c = randIntExcept(b + 1, b + 6, a + b);
+  const all = [a, b, c];
+  for (let i = 3; i < 6; i++) all.push(all[i - 1] + all[i - 2] + all[i - 3]);
+  const terms = all.slice(0, 5);
+  return {
+    terms,
+    answer: all[5],
+    explanation: `Elke term is de som van de drie voorgaande: ${terms[2]} + ${terms[3]} + ${terms[4]} = ${all[5]}.`,
+    hint: `Er is geen vaste stap en geen vaste factor, en twee getallen naast elkaar optellen levert het volgende getal niet op. Probeer er eens drie: ${terms[0]} + ${terms[1]} + ${terms[2]}. Kijk of dat verderop ook opgaat.`,
+    family: 'tribonacci',
+    // De Fibonacci-lezing (twee optellen) is hier de klassieke valkuil.
+    distractors: [terms[3] + terms[4], all[5] + terms[2], all[5] + 1, all[5] - 1],
+  };
+}
+
+// Elke term is de vorige min de term daarvoor. De reeks zakt daardoor door nul
+// en herhaalt zich pas na zes termen.
+function fibMinus(): NumericSeries {
+  const a = randInt(6, 15);
+  const b = randInt(1, a - 1); // kleiner dan a, dus de derde term wordt negatief
+  const terms = [a, b];
+  for (let i = 2; i < 5; i++) terms.push(terms[i - 1] - terms[i - 2]);
+  const answer = terms[4] - terms[3];
+  return {
+    terms,
+    answer,
+    explanation: `Elke term is de vorige min de term daarvoor: ${paren(terms[4])} - ${paren(terms[3])} = ${answer}.`,
+    hint: `De reeks zakt eerst door nul en klimt daarna weer, zonder vaste stap of factor. Trek eens twee getallen van elkaar af in plaats van ze op te tellen: ${paren(terms[1])} - ${paren(terms[0])} geeft precies het getal dat erna komt. Kijk of dat verderop ook opgaat.`,
+    family: 'fibminus',
+    // Optellen in plaats van aftrekken, of het teken omdraaien.
+    distractors: [terms[4] + terms[3], -answer, answer + 1, answer - 1],
+  };
+}
+
 interface RecursiveOptions {
   start: number;
   multiplier: number;
@@ -436,11 +602,10 @@ function cubes(): NumericSeries {
   };
 }
 
-// Machten van 2 met een vaste verschuiving, bijvoorbeeld 1, 3, 7, 15, 31.
-// Bewust alleen basis 2 en een lage startexponent: machten van 3 lopen binnen
-// vijf termen al richting 729 en dat maakt de vraag vooral rekenwerk.
-function powers(): NumericSeries {
-  const base = 2;
+// Machten met een vaste verschuiving, bijvoorbeeld 1, 3, 7, 15, 31. De
+// startexponent blijft bewust laag: machten van 3 lopen binnen vijf termen al
+// richting 729, dus die horen pas op het hoogste niveau thuis.
+function powers(base: number): NumericSeries {
   const offset = pick([-1, 1]);
   const first = randInt(1, 2);
   const terms = Array.from({ length: 5 }, (_, i) => base ** (first + i) + offset);
@@ -557,6 +722,7 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
     altOpsPlus,
     altOpsMinus,
     arithmetic2Turning,
+    primes,
     () => altMulDiv([MUL_DIV_PAIRS[0]]), // x4, :2: de lichtste van de vier
     () => geometric([3, 4], 4),
     () => arithmeticFromNegative(9, 20), // grotere stappen, start onder nul
@@ -575,17 +741,6 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
       const up = randInt(4, 8);
       return zigzag({ start: randInt(2, 6), up, down: up + randInt(4, 9) });
     },
-  ],
-  5: [
-    // De drie machtreeksen delen een plek in de lijst. Zo komt "herken de
-    // macht" ongeveer een op de zes vragen voorbij in plaats van drie keer zo
-    // vaak, terwijl de variatie binnen die vorm blijft bestaan.
-    () => pick([squares, cubes, powers])(),
-    fibonacci,
-    primes,
-    () => altMulDiv(MUL_DIV_PAIRS.slice(1)), // grotere factoren en delers
-    () => geometric([-2, -3], 4),
-    () => recursiveIn({ startMin: 2, startMax: 5, multipliers: [3, 4], constants: [-3, -5, 5, 7] }),
     () => interwoven({
       startA: randInt(1, 9),
       stepA: randInt(4, 11),
@@ -593,19 +748,46 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
       stepB: -randInt(6, 12),
     }),
   ],
+  5: [
+    // De drie machtreeksen delen een plek in de lijst. Zo komt "herken de
+    // macht" ongeveer een op de zes vragen voorbij in plaats van drie keer zo
+    // vaak, terwijl de variatie binnen die vorm blijft bestaan.
+    () => pick([squares, cubes, () => powers(2)])(),
+    fibonacci,
+    () => altMulDiv(MUL_DIV_PAIRS.slice(1)), // grotere factoren en delers
+    () => geometric([-2, -3], 4),
+    () => recursiveIn({ startMin: 2, startMax: 5, multipliers: [3, 4], constants: [-3, -5, 5, 7] }),
+    interwovenGeo,
+    () => geoDiff({ start: randInt(2, 9), firstDiff: randInt(2, 6), ratio: 2 }),
+  ],
+  // Niveau 6 is de bovenkant: reeksen waarvan de regel zelf uit twee stappen
+  // bestaat, of die pas zichtbaar wordt als je drie termen tegelijk bekijkt.
+  6: [
+    tribonacci,
+    fibMinus,
+    products,
+    () => interwoven3In({ startMin: 2, startMax: 12 }),
+    () => powers(3), // machten van 3: het zwaarste hoofdrekenwerk, dus alleen hier
+    () => geoDiff({ start: randInt(2, 9), firstDiff: randInt(2, 5), ratio: 3 }),
+    () => recursiveIn({ startMin: 2, startMax: 4, multipliers: [3, 4], constants: [-9, -7, 7, 9] }),
+  ],
 };
 
-// Bouwt een reeks voor een gegeven niveau (1..5). Exporteerbaar voor tests.
+// Bouwt een reeks voor een gegeven niveau (1..6). Exporteerbaar voor tests.
 export function buildNumericSeries(level: number): NumericSeries {
-  const clamped = Math.min(5, Math.max(1, Math.round(level)));
+  const clamped = clampLevel(level);
   const strategies = strategiesByLevel[clamped];
   return pick(strategies)();
+}
+
+function clampLevel(level: number): number {
+  return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
 }
 
 let counter = 0;
 
 export function generateNumeric(level: number): Item {
-  const clamped = Math.min(5, Math.max(1, Math.round(level)));
+  const clamped = clampLevel(level);
   const series = buildNumericSeries(clamped);
   const fallback = [
     series.answer + 1,

@@ -1,4 +1,4 @@
-// Betekenis van de niveaus 1..5 in indicatief opleidingsniveau. Let op: dit is
+// Betekenis van de niveaus 1..6 in indicatief opleidingsniveau. Let op: dit is
 // een richtlijn (de niveaus zijn aannames tot er echte kalibratiedata is),
 // bedoeld om "niveau 3" begrijpelijker te maken voor de gebruiker.
 
@@ -9,7 +9,8 @@ export const LEVEL_LABELS: Record<number, string> = {
   2: 'mbo 2-3',
   3: 'mbo 3-4',
   4: 'mbo-4 / hbo',
-  5: 'hbo en hoger',
+  5: 'hbo',
+  6: 'hbo+ / wo',
 };
 
 export function levelLabel(level: number): string {

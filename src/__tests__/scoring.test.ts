@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { MAX_LEVEL } from '../engine/types';
 import {
   scoreAnswer,
   BASE_POINTS,
@@ -67,7 +68,7 @@ describe('scoring', () => {
   });
 
   it('hulp is nooit voordeliger dan het zelf oplossen', () => {
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       for (const responseMs of [1000, 5000, 9000]) {
         const input = { correct: true, level, responseMs, streakBefore: 2 };
         expect(scoreAnswer({ ...input, hintUsed: true }).points).toBeLessThan(

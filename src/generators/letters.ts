@@ -1,4 +1,4 @@
-// Letterpatronen: procedureel gegenereerde letterreeksen op niveau 1..5.
+// Letterpatronen: procedureel gegenereerde letterreeksen op niveau 1..6.
 // Letters worden gerekend als posities A=0..Z=25 met modulo-26 wrap.
 //
 // Net als bij de cijferpatronen zijn er per niveau meerdere families, zodat
@@ -6,7 +6,7 @@
 // in het alfabet gelegd dat er geen omslag van Z naar A nodig is; lukt dat
 // niet (bij grote stappen), dan wijst de uitleg de gebruiker daarop.
 
-import type { Item } from '../engine/types';
+import { MAX_LEVEL, MIN_LEVEL, type Item } from '../engine/types';
 import { randInt, pick, buildOptions } from './random';
 import { stepLabel } from './format';
 import { STRATEGY_HINTS } from './hints';
@@ -32,6 +32,9 @@ export type LetterFamily =
   | 'mirror' // een reeks vanaf het begin en een vanaf het eind van het alfabet
   | 'pairs' // letterparen die met een vaste stap opschuiven
   | 'pairsMirror' // letterparen waarvan de letters uit elkaar lopen
+  | 'pairsChanging' // letterparen waarvan de eerste letter versnelt
+  | 'doublingStep' // stap verdubbelt elke keer
+  | 'primePositions' // plaatsen in het alfabet zijn opeenvolgende priemgetallen
   | 'fibStep'; // stap is de som van de twee vorige stappen
 
 export interface LetterSeries {
@@ -185,15 +188,21 @@ function interwovenPair(stepA: number, gap: number, stepB: number): OffsetPatter
   };
 }
 
+interface TripleOptions {
+  stepMin: number; // ondergrens voor de stap van de gevraagde reeks
+  stepMax: number;
+  backwards: boolean; // laat de tweede reeks teruglopen
+}
+
 // Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks.
-function interwovenTriple(): OffsetPattern {
+function interwovenTriple({ stepMin, stepMax, backwards }: TripleOptions): OffsetPattern {
   // Reeks A is de gevraagde reeks; met stap 1 zou het antwoord te makkelijk
   // af te lezen zijn.
-  const stepA = randInt(2, 3);
-  const stepB = randInt(1, 3);
+  const stepA = randInt(stepMin, stepMax);
+  const stepB = backwards ? -randInt(2, 4) : randInt(1, 3);
   const stepC = randInt(1, 3);
-  const gapB = randInt(4, 7);
-  const gapC = randInt(9, 12);
+  const gapB = backwards ? randInt(10, 12) : randInt(4, 7);
+  const gapC = randInt(13, 16);
   return {
     family: 'interwovenTriple',
     offsets: [
@@ -241,11 +250,54 @@ function mirrorPair(forwardMin: number, forwardMax: number): LetterSeries {
   });
 }
 
+// Stap die elke keer verdubbelt: +1, +2, +4, +8, ... De reeks loopt daardoor
+// altijd voorbij Z; de uitleg wijst daarop.
+function doublingStep(): OffsetPattern {
+  const steps = [1, 2, 4, 8, 16];
+  const offsets = [0];
+  for (let i = 0; i < 4; i++) offsets.push(offsets[i] + steps[i]);
+  return {
+    family: 'doublingStep',
+    offsets,
+    answerOffset: offsets[4] + steps[4],
+    describe: (tokens, answer) =>
+      `Elke sprong is twee keer zo groot als de vorige: ${steps
+        .slice(0, 4)
+        .map(stepLabel)
+        .join(', ')}, ... De volgende sprong is ${stepLabel(steps[4])}, dus na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De sprongen zijn dan ${steps
+        .slice(0, 4)
+        .map(stepLabel)
+        .join(', ')}. Die sprongen lopen niet met een vast bedrag op; deel ze eens door elkaar.`,
+  };
+}
+
+// Priemgetallen tot en met 26: verder komt de reeks niet zonder omslag.
+const PRIME_POSITIONS = [2, 3, 5, 7, 11, 13, 17, 19, 23];
+
+// De plaatsen in het alfabet zijn opeenvolgende priemgetallen: B, C, E, G, K, ...
+// De sprongen zijn hier onregelmatig, dus rekenen levert niets op.
+function primePositions(): LetterSeries {
+  const start = randInt(0, PRIME_POSITIONS.length - 6);
+  const values = PRIME_POSITIONS.slice(start, start + 6);
+  return letterSeries({
+    family: 'primePositions',
+    positions: values.slice(0, 5).map((v) => v - 1),
+    answerIndex: values[5] - 1,
+    describe: (tokens, answer) =>
+      `De plaatsen in het alfabet zijn opeenvolgende priemgetallen: ${positionList(tokens)}. Het priemgetal na ${values[4]} is ${values[5]}, en dat is de letter ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De sprongen daartussen zijn onregelmatig, dus er zit geen rekenregel achter. Kijk eens door welke getallen die plaatsen deelbaar zijn: het gaat om een bekend rijtje getallen.`,
+  });
+}
+
 interface PairOptions {
   first: number; // positie van de eerste letter van het eerste paar
   firstStep: number;
   second: number; // positie van de tweede letter van het eerste paar
   secondStep: number;
+  firstIncrement?: number; // verandering van de stap van de eerste letter
   family: LetterFamily;
   describe: (tokens: string[], answer: string) => string;
   hint: (tokens: string[]) => string;
@@ -257,14 +309,18 @@ function letterPairs({
   firstStep,
   second,
   secondStep,
+  firstIncrement = 0,
   family,
   describe,
   hint,
 }: PairOptions): LetterSeries {
-  const pairAt = (i: number): string =>
-    letterAt(first + i * firstStep) + letterAt(second + i * secondStep);
+  // De stap van de eerste letter verandert elke keer met firstIncrement; bij 0
+  // levert dat gewoon een vaste stap op.
+  const firstAt = (i: number): number =>
+    first + i * firstStep + firstIncrement * ((i * (i - 1)) / 2);
+  const pairAt = (i: number): string => letterAt(firstAt(i)) + letterAt(second + i * secondStep);
   const tokens = Array.from({ length: 5 }, (_, i) => pairAt(i));
-  const answerFirst = first + 5 * firstStep;
+  const answerFirst = firstAt(5);
   const answerSecond = second + 5 * secondStep;
   const answer = letterAt(answerFirst) + letterAt(answerSecond);
   return {
@@ -318,12 +374,46 @@ function divergingPairs(): LetterSeries {
   });
 }
 
+// Paren waarvan de eerste letter steeds een grotere sprong maakt en de tweede
+// een vaste stap houdt. Beide letters vragen dus om een andere analyse.
+function acceleratingPairs(): LetterSeries {
+  const increment = randInt(1, 2);
+  const secondStep = randInt(1, 3);
+  const steps = [1, 2, 3, 4, 5].map((i) => 1 + (i - 1) * increment);
+  return letterPairs({
+    // Zo gekozen dat ook de laatste, grootste sprong nog binnen A..Z past.
+    first: randInt(0, 20 - 10 * increment),
+    firstStep: 1,
+    firstIncrement: increment,
+    second: randInt(4, 25 - 5 * secondStep),
+    secondStep,
+    family: 'pairsChanging',
+    describe: (tokens, answer) =>
+      `De eerste letter van elk paar maakt een steeds grotere sprong (${steps
+        .slice(0, 4)
+        .map(stepLabel)
+        .join(', ')}, ...), de tweede letter loopt telkens ${stepLabel(secondStep)}. Na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Behandel de twee letters van elk blokje apart. De eerste letters zijn ${tokens
+        .map((t) => t[0])
+        .join(', ')} en de tweede ${tokens.map((t) => t[1]).join(', ')}. Let op: maar een van die twee reeksen heeft een vaste sprong.`,
+  });
+}
+
 // Beginstappen die binnen het alfabet passen wanneer ze fibonacci-gewijs
 // oplopen (grotere startstappen zouden voorbij Z schieten).
 const FIB_STEP_STARTS: readonly (readonly [number, number])[] = [
   [1, 1],
   [1, 2],
   [2, 1],
+];
+
+// Grotere beginstappen: de reeks schiet dan wel voorbij Z, wat de opgave
+// zwaarder maakt. Alleen voor het hoogste niveau.
+const FIB_STEP_STARTS_HARD: readonly (readonly [number, number])[] = [
+  [1, 3],
+  [2, 3],
+  [3, 2],
 ];
 
 // Stap die de som is van de twee vorige stappen.
@@ -396,24 +486,40 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
       const [a, b] = pick(FIB_STEP_STARTS);
       return fromOffsets(fibonacciSteps(a, b));
     },
-    () => fromOffsets(interwovenTriple()),
+    () => fromOffsets(interwovenTriple({ stepMin: 2, stepMax: 3, backwards: false })),
     () => fromOffsets(twoStepCycle(randInt(2, 4), -randInt(5, 8), 'zigzag')),
     () => fromOffsets(interwovenPair(randInt(4, 6), randInt(14, 20), -randInt(4, 6))),
+    () => fromOffsets(changingStep(randInt(1, 2), 3)), // sterk oplopende stap
     () => mirrorPair(2, 4),
-    divergingPairs,
+  ],
+  // Niveau 6: reeksen waarbij rekenen met de sprongen niet meer volstaat, of
+  // waarbij twee sporen tegelijk gevolgd moeten worden.
+  6: [
+    primePositions,
+    () => fromOffsets(doublingStep()),
+    () => fromOffsets(interwovenTriple({ stepMin: 3, stepMax: 5, backwards: true })),
+    () => {
+      const [a, b] = pick(FIB_STEP_STARTS_HARD);
+      return fromOffsets(fibonacciSteps(a, b));
+    },
+    acceleratingPairs,
+    () => mirrorPair(4, 6),
   ],
 };
 
-// Bouwt de reeks voor een gegeven niveau (1..5). Exporteerbaar voor tests.
+// Bouwt de reeks voor een gegeven niveau (1..6). Exporteerbaar voor tests.
 export function buildLetterSeries(level: number): LetterSeries {
-  const clamped = Math.min(5, Math.max(1, Math.round(level)));
-  return pick(strategiesByLevel[clamped])();
+  return pick(strategiesByLevel[clampLevel(level)])();
+}
+
+function clampLevel(level: number): number {
+  return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
 }
 
 let counter = 0;
 
 export function generateLetters(level: number): Item {
-  const clamped = Math.min(5, Math.max(1, Math.round(level)));
+  const clamped = clampLevel(level);
   const series = buildLetterSeries(clamped);
   const { options, correctIndex } = buildOptions(series.answer, series.distractors);
   counter += 1;

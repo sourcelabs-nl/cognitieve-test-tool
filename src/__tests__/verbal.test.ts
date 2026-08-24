@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { MAX_LEVEL } from '../engine/types';
 import { generateVerbal, verbalBank, resetVerbalHistory } from '../generators/verbal';
 
 describe('woordrelaties-bank', () => {
@@ -11,7 +12,7 @@ describe('woordrelaties-bank', () => {
       expect(entry.correctIndex).toBeGreaterThanOrEqual(0);
       expect(entry.correctIndex).toBeLessThan(4);
       expect(entry.level).toBeGreaterThanOrEqual(1);
-      expect(entry.level).toBeLessThanOrEqual(5);
+      expect(entry.level).toBeLessThanOrEqual(MAX_LEVEL);
       expect(entry.explanation.length).toBeGreaterThan(0);
       // Het gevraagde woord mag niet al in de opgave staan.
       for (const word of [entry.a, entry.b, entry.c]) {
@@ -24,7 +25,7 @@ describe('woordrelaties-bank', () => {
   // ruim genoeg items per niveau zijn om herhaling binnen een sessie (15 items)
   // te voorkomen.
   it('elk niveau heeft meer items dan een sessie lang is', () => {
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       const count = verbalBank().filter((e) => e.level === level).length;
       expect(count).toBeGreaterThan(15);
     }
@@ -36,7 +37,7 @@ describe('woordrelaties-bank', () => {
   });
 
   it('generateVerbal levert een item met het juiste antwoord na husselen', () => {
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       for (let i = 0; i < 50; i++) {
         const item = generateVerbal(level);
         expect(item.options).toHaveLength(4);
@@ -48,7 +49,7 @@ describe('woordrelaties-bank', () => {
   });
 
   it('herhaalt binnen een sessie van 15 items geen enkele opgave', () => {
-    for (let level = 1; level <= 5; level++) {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
       const prompts = Array.from({ length: 15 }, () => generateVerbal(level).prompt);
       expect(new Set(prompts).size).toBe(15);
     }

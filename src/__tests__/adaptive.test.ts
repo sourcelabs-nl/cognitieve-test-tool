@@ -58,12 +58,13 @@ function average(values: number[]): number {
 }
 
 describe('staircase-algoritme', () => {
-  it('vertaalt schatting naar discreet niveau 1..5', () => {
+  it('vertaalt schatting naar discreet niveau 1..6', () => {
     expect(levelForEstimate(1.0)).toBe(1);
     expect(levelForEstimate(2.4)).toBe(2);
     expect(levelForEstimate(2.6)).toBe(3);
     expect(levelForEstimate(5.0)).toBe(5);
-    expect(levelForEstimate(7)).toBe(5);
+    expect(levelForEstimate(6.0)).toBe(6);
+    expect(levelForEstimate(9)).toBe(6);
   });
 
   it('altijd goed convergeert naar een hoog eindniveau', () => {

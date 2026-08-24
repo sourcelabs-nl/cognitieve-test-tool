@@ -1,5 +1,5 @@
 // Lijngrafiek met de dagen van een 7-daags venster op de x-as en de
-// niveau-schatting (1..5) op de y-as.
+// niveau-schatting (1..MAX_LEVEL) op de y-as.
 
 import { MIN_LEVEL, MAX_LEVEL } from '../engine/types';
 import { addDays, type DayPoint } from '../engine/dateWindow';
@@ -22,7 +22,7 @@ export function DailyLevelChart({ points, windowStart, days = 7, width = 480, he
   const y = (v: number) =>
     padding.top + innerH - ((v - MIN_LEVEL) / (MAX_LEVEL - MIN_LEVEL)) * innerH;
 
-  const gridLevels = [1, 2, 3, 4, 5];
+  const gridLevels = Array.from({ length: MAX_LEVEL - MIN_LEVEL + 1 }, (_, i) => MIN_LEVEL + i);
   const dayLabels = Array.from({ length: days }, (_, i) => {
     const d = addDays(windowStart, i);
     return `${d.getDate()}/${d.getMonth() + 1}`;

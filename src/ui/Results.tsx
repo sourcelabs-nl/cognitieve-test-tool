@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { BarChart3, Home, Trophy } from 'lucide-react';
-import type { Profile, SessionResult } from '../engine/types';
+import { MAX_LEVEL, type Profile, type SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { bestScoreForCategory, compareToPrevious, formatDateTime } from '../storage/history';
 import { levelForEstimate } from '../engine/adaptive';
@@ -63,7 +63,7 @@ export function Results({ result, profile, onRetry, onHome, onShowProgress, onSh
       <div className="stat-grid">
         <div className="stat">
           <span className="stat-value">{result.finalEstimate.toFixed(1)}</span>
-          <span className="stat-label">niveau (van 5)</span>
+          <span className="stat-label">niveau (van {MAX_LEVEL})</span>
         </div>
         <div className="stat">
           <span className="stat-value">{result.percentCorrect}%</span>

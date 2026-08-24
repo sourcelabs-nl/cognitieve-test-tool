@@ -7,7 +7,7 @@
 // bij het item, dan tellen de punten half.
 
 export const BASE_POINTS = 100;
-export const LEVEL_BONUS = 20; // per niveau (1..5)
+export const LEVEL_BONUS = 20; // per niveau (1..6)
 
 // Snelheidsdrempels: onder de drempel hoort de bijbehorende bonus.
 export const FAST_MS = 3000;
@@ -22,7 +22,7 @@ export const HINT_PENALTY = 0.5; // met hulp tellen de punten half
 
 export interface ScoreInput {
   correct: boolean;
-  level: number; // niveau van het item (1..5)
+  level: number; // niveau van het item (1..6)
   responseMs: number;
   streakBefore: number; // aantal goede antwoorden direct hiervoor
   hintUsed?: boolean; // hulp gevraagd bij dit item

@@ -16,7 +16,9 @@ import {
 } from './types';
 
 export const INITIAL_ESTIMATE = 2.5;
-export const INITIAL_STEP = 0.8;
+// De stap schaalt mee met de lengte van de schaal (1..6): met een kleinere
+// beginstap kost het te veel vragen om de bovenkant te bereiken.
+export const INITIAL_STEP = 1.0;
 export const MIN_STEP = 0.1; // ondergrens voor de stapgrootte
 export const TARGET_CORRECT = 0.75; // gewenst slagingspercentage
 // Elke sessie telt evenveel vragen. Een sessie eerder afbreken zodra de stap
@@ -35,7 +37,7 @@ function clampEstimate(value: number): number {
   return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, value));
 }
 
-// Vertaalt de continue schatting naar een discreet generatie-niveau (1..5).
+// Vertaalt de continue schatting naar een discreet generatie-niveau (1..6).
 export function levelForEstimate(estimate: number): number {
   return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(estimate)));
 }
