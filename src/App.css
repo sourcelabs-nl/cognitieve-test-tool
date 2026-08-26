@@ -925,6 +925,14 @@ button {
   margin-top: 8px;
 }
 
+/* Uitgeklapt staan er vier releases onder elkaar. Zonder scheiding lopen de
+   blokken in elkaar over, want alleen de grijze versieregel markeert de grens. */
+.whats-new-release + .whats-new-release {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
 .whats-new-list {
   margin: 8px 0 0;
   padding-left: 20px;
@@ -934,8 +942,16 @@ button {
   margin-bottom: 8px;
 }
 
-.whats-new .footer-actions {
+/* Uitklapknop voor de oudere changelog. Op een eigen regel boven "Duidelijk",
+   want naast elkaar zouden de twee labels sterk in lengte verschillen. */
+.whats-new-history {
+  display: flex;
+  justify-content: center;
   margin-top: 16px;
+}
+
+.whats-new .footer-actions {
+  margin-top: 12px;
 }
 
 /* "Wist je dat..."-kaart */

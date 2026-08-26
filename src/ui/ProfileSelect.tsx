@@ -2,7 +2,7 @@
 // verschillende personen op dit apparaat. Ook export/import van voortgang.
 
 import { useRef, useState } from 'react';
-import { Download, Trash2, Upload } from 'lucide-react';
+import { Download, Sparkles, Trash2, Upload } from 'lucide-react';
 import type { Profile } from '../engine/types';
 import { createProfile, deleteProfile, listProfiles } from '../storage/profiles';
 import { downloadExport, importFromJson } from '../storage/transfer';
@@ -11,9 +11,10 @@ import { Avatar, AvatarPicker } from './avatars';
 
 interface Props {
   onSelect: (profile: Profile) => void;
+  onShowChangelog: () => void;
 }
 
-export function ProfileSelect({ onSelect }: Props) {
+export function ProfileSelect({ onSelect, onShowChangelog }: Props) {
   const [profiles, setProfiles] = useState<Profile[]>(() => listProfiles());
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState<string>(AVATARS[0].id);
@@ -107,6 +108,14 @@ export function ProfileSelect({ onSelect }: Props) {
         />
       </div>
       {message && <p className="muted">{message}</p>}
+
+      {/* De changelog verschijnt vanzelf bij een nieuwe versie, maar is daarna
+          weg. Hier blijft hij bereikbaar voor wie iets wil nalezen. */}
+      <div className="footer-actions">
+        <button className="btn" onClick={onShowChangelog}>
+          <Sparkles size={18} /> Wat is nieuw?
+        </button>
+      </div>
     </section>
   );
 }

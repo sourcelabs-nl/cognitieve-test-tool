@@ -6,6 +6,7 @@ import type { Category, Mode, Profile, SessionResult } from './engine/types';
 import { addResult, startEstimateForCategory } from './storage/history';
 import { getProfile, setAvatar } from './storage/profiles';
 import { markVersionSeen, newReleases } from './storage/appVersion';
+import { releases as allReleases } from './data/whatsNew';
 import { WhatsNew } from './ui/WhatsNew';
 import { ProfileSelect } from './ui/ProfileSelect';
 import { CategorySelect } from './ui/CategorySelect';
@@ -34,10 +35,18 @@ export default function App() {
   // Eenmalig bij het laden bepalen; daarna verdwijnt de kaart pas als de
   // gebruiker hem wegklikt.
   const [releases, setReleases] = useState(newReleases);
+  // Zelf opgevraagd vanaf het profielscherm, ook als er niets nieuws is.
+  const [changelogOpen, setChangelogOpen] = useState(false);
+
+  // Automatisch toont de kaart alles wat na de laatst geziene versie kwam.
+  // Zelf opgevraagd begint hij bij de nieuwste release; de rest van de historie
+  // zit daar uitklapbaar onder.
+  const cardReleases = releases.length > 0 ? releases : changelogOpen ? allReleases.slice(0, 1) : [];
 
   const dismissWhatsNew = () => {
     markVersionSeen();
     setReleases([]);
+    setChangelogOpen(false);
   };
 
   const handleSelectProfile = (p: Profile) => {
@@ -73,9 +82,14 @@ export default function App() {
     <main className="app">
       <PwaUpdater />
 
-      <WhatsNew releases={releases} onDismiss={dismissWhatsNew} />
+      <WhatsNew releases={cardReleases} onDismiss={dismissWhatsNew} />
 
-      {screen === 'profile' && <ProfileSelect onSelect={handleSelectProfile} />}
+      {screen === 'profile' && (
+        <ProfileSelect
+          onSelect={handleSelectProfile}
+          onShowChangelog={() => setChangelogOpen(true)}
+        />
+      )}
 
       {screen === 'category' && profile && (
         <CategorySelect

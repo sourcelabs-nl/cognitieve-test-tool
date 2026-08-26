@@ -263,6 +263,9 @@ Bij het laden toont de app eenmalig een kaart met alles wat na de laatst geziene
 - Iemand die de app voor het eerst opent (geen profielen, geen geziene versie) krijgt geen changelog te zien.
 - Is de opgeslagen versie onbekend, dan toont de app alleen de nieuwste release; een lange lijst met oude wijzigingen leest toch niemand.
 - De kaart is niet blokkerend: hij staat boven het scherm en verdwijnt met "Duidelijk".
+- De pagina springt naar boven zodra de kaart verschijnt. Browsers herstellen bij een herlaad de vorige scrollpositie, en dan hangt de kaart ongezien boven beeld. Springen zonder animatie: de gebruiker heeft er niet zelf om gevraagd.
+- De kaart is ook zelf op te vragen met de knop "Wat is nieuw?" onderaan `ui/ProfileSelect.tsx`. Automatisch toont hij alles wat na de laatst geziene versie kwam; zelf opgevraagd begint hij bij de nieuwste release en zit de rest van de historie eronder. `App.tsx` bepaalt dat onderscheid (`cardReleases`).
+- Onder de nieuwe punten zit de rest van de changelog uitklapbaar weggevouwen ("Bekijk oudere versies", `olderReleases()`), zodat iemand die versies heeft overgeslagen alsnog terug kan lezen zonder dat de kaart standaard een lap tekst wordt. Wat de kaart toont plus het uitklapbare deel is samen altijd precies de hele historie; `__tests__/whatsNew.test.ts` bewaakt dat.
 
 Dit staat los van de PWA-updatemelding (`ui/PwaUpdater.tsx`), die alleen meldt dat er een nieuwe versie klaarstaat om te laden.
 

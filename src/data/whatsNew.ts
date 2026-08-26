@@ -16,6 +16,15 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: '1.2.2',
+    date: '2026-08-26',
+    items: [
+      'Deze kaart springt nu vanzelf in beeld als er iets nieuws is, ook als je de app opende op een plek waar je eerder gebleven was.',
+      'Je kunt met "Bekijk oudere versies" terugbladeren door alles wat er in eerdere versies is veranderd.',
+      'Onderaan het scherm waar je je profiel kiest staat nu een knop "Wat is nieuw?", zodat je deze lijst altijd terug kunt vinden.',
+    ],
+  },
+  {
     version: '1.2.1',
     date: '2026-08-26',
     items: [
@@ -59,6 +68,14 @@ export function releasesSince(lastSeen: string | null): Release[] {
   if (lastSeen === null) return releases.slice(0, 1);
   const index = releases.findIndex((r) => r.version === lastSeen);
   return index === -1 ? releases.slice(0, 1) : releases.slice(0, index);
+}
+
+// De rest van de changelog: alles wat niet al in de kaart staat. Wat de kaart
+// toont is altijd een aaneengesloten rij vanaf de nieuwste release, dus wat
+// daarna komt is de oudere historie. Bedoeld voor het uitklapbare deel van de
+// kaart, zodat iemand die een versie heeft overgeslagen alsnog terug kan lezen.
+export function olderReleases(shown: Release[]): Release[] {
+  return releases.slice(shown.length);
 }
 
 export interface PendingInput {
