@@ -16,6 +16,14 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: '1.2.1',
+    date: '2026-08-26',
+    items: [
+      'De knop om verder te gaan staat nu midden in beeld, boven de uitleg, zodat je hem meteen ziet en niet meer hoeft te scrollen na een lang antwoord.',
+      'Heb je hulp gevraagd, dan verdwijnt de hulptekst zodra je hebt geantwoord. De uitleg vertelt vanaf dat moment het hele verhaal.',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-08-26',
     items: [

@@ -126,7 +126,10 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
         ))}
       </div>
 
-      {hintLevel > 0 && (
+      {/* Zodra het antwoord er is, verdwijnt de hulp: de uitleg vertelt nu het
+          hele verhaal, en twee opengeklapte tredes hulp duwden de doorgaan-knop
+          honderden pixels onder de onderkant van het scherm. */}
+      {hintLevel > 0 && !feedback && (
         <div className="hint-card" role="status">
           <div className="hint-head">
             <p className="hint-title">
@@ -165,10 +168,16 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
             </p>
             <SpeakButton text={feedback.explanation} label="Lees de uitleg voor" />
           </div>
-          <p>{feedback.explanation}</p>
-          <button className="primary" onClick={proceed} autoFocus>
-            {isLastQuestion ? 'Bekijk resultaat' : 'Volgende vraag'}
-          </button>
+          {/* De knop staat bewust boven de uitleg, ongeveer op de plek waar
+              tijdens het nadenken de hulpknop stond. Onder een lange uitleg
+              viel hij buiten het scherm, waardoor je eerst moest scrollen om
+              verder te kunnen. */}
+          <div className="feedback-actions">
+            <button className="primary" onClick={proceed} autoFocus>
+              {isLastQuestion ? 'Bekijk resultaat' : 'Volgende vraag'}
+            </button>
+          </div>
+          <p className="feedback-explanation">{feedback.explanation}</p>
         </div>
       )}
     </section>

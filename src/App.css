@@ -515,8 +515,16 @@ button {
   box-shadow: var(--shadow);
 }
 
-.feedback button {
-  margin-top: 14px;
+/* Doorgaan-knop: gecentreerd zoals alle schermacties, en boven de uitleg zodat
+   hij ook bij een lange uitleg binnen het scherm valt. */
+.feedback-actions {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0;
+}
+
+.feedback-explanation {
+  margin: 0;
 }
 
 /* Resultaten */
