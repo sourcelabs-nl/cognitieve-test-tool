@@ -19,8 +19,30 @@ Prioriteiten (hoog naar laag): inhoudelijk goede vragen → werkend adaptief alg
 Categorieën (toegespitst op de focus van de opdrachtgever):
 - **Cijferpatronen** — procedureel gegenereerd, 6 niveaus.
 - **Letterpatronen** — procedureel gegenereerd, 6 niveaus (A-Z ↔ 1-26, modulo 26).
-- **Woordrelaties** — gecureerde Nederlandse itembank met niveau-label (analogieën "A : B = C : ?"), 170 items met het zwaartepunt op niveau 3-6.
+- **Woordrelaties** — gecureerde Nederlandse itembank met niveau-label, 170 enkele analogieën ("A : B = C : ?") en 40 dubbele ("? : B = C : ?"), zwaartepunt op niveau 3-6.
 - **Gemengd** — wisselt de drie categorieën af.
+
+### Vraagvormen
+
+Binnen een categorie komen meerdere vormen voor, gelijk aan wat de echte cognitieve capaciteitentest van de politie bevat. De vorm staat in `Item.form` (`ItemForm` in `engine/types.ts`) en bepaalt welke aanpak-hulp de gebruiker krijgt (`generators/hints.ts` is per vorm, niet per categorie).
+
+| Vorm | Categorie | Niveaus | Aandeel |
+|---|---|---|---|
+| `numericSeries` | cijfers | 1-6 | rest |
+| `numericGrid` | cijfers | 3-6 | 1 op 10 |
+| `numericOddOne` | cijfers | 3-6 | 1 op 10 |
+| `letterSeries` | letters | 1-6 | rest |
+| `letterOddOne` | letters | 3-6 | 1 op 5 |
+| `verbalSingle` | woorden | 1-6 | rest |
+| `verbalDouble` | woorden | 3-6 | 0% op 1-2, 25% op 3, 40% op 4, 50% op 5-6 |
+
+Reeksen blijven bewust de hoofdmoot: de nieuwe vormen zijn variatie, geen vervanging.
+
+- **Raster** (`numericGrid`): 3x3 getallen waarvan een vakje leeg is; de regel loopt per rij of per kolom. Het raster zit in `Item.grid` (`{ cols, cells }`, het gevraagde vakje is `'?'`) en wordt door `ui/Question.tsx` als CSS-grid gerenderd, niet als tekst in de prompt. `ui/speech.ts` leest het rij voor rij voor.
+- **Welke hoort niet in de rij** (`numericOddOne`, `letterOddOne`): een rij die bijna helemaal een regel volgt met precies een bedorven term; de opties zijn getoonde termen. Zie "Eenduidigheid bij odd-one-out" hieronder.
+- **Dubbele analogie** (`verbalDouble`): `? : B = C : ?`, kiezen uit vier woordparen. Zwaarder dan de enkele vorm omdat de relatie niet af te lezen is: je moet hem uit de twee gegeven woorden en de kandidaatparen samen afleiden. Eigen bank `data/verbalDouble.json`, geen niveau 1-2.
+
+Buiten scope gebleven, hoewel de politietest ze wel timet: een tijdslimiet per vraag.
 
 Buiten v1 (architectureel wel mogelijk gehouden): abstracte/figuurreeksen, rekenkundig redeneren, IRT/CAT-kalibratie, backend-sync.
 
@@ -45,8 +67,9 @@ src/
     verbal.ts       woordrelaties bank-loader
     index.ts        registry: categorie -> generate(level)
   data/
-    verbal.json     gecureerde woordrelaties met niveau-tag
-    whatsNew.ts     changelog voor de gebruiker + APP_VERSION
+    verbal.json       gecureerde enkele woordrelaties met niveau-tag
+    verbalDouble.json gecureerde dubbele analogieen (niveau 3..6)
+    whatsNew.ts       changelog voor de gebruiker + APP_VERSION
   state/
     useSession.ts   actieve sessie: schatting, antwoorden, voortgang
   storage/
@@ -73,16 +96,28 @@ src/
 ```ts
 type Category = 'numeric' | 'letters' | 'verbal' | 'mixed';
 
+type ItemForm =
+  | 'numericSeries' | 'numericGrid' | 'numericOddOne'
+  | 'letterSeries'  | 'letterOddOne'
+  | 'verbalSingle'  | 'verbalDouble';
+
 interface Hint {
-  strategy: string;       // aanpak per categorie, verklapt de familie niet
+  strategy: string;       // aanpak per vraagvorm, verklapt de familie niet
   step: string;           // eerste concrete denkstap voor dit item
+}
+
+interface ItemGrid {
+  cols: number;           // aantal kolommen; rijen volgen uit cells.length
+  cells: string[];        // rij voor rij; het gevraagde vakje bevat '?'
 }
 
 interface Item {
   id: string;
   category: Category;
+  form: ItemForm;
   level: number;          // 1..6
   prompt: string;
+  grid?: ItemGrid;        // alleen bij matrix-items; prompt bevat dan geen reeks
   options: string[];
   correctIndex: number;
   explanation: string;    // gebruikt voor feedback in oefenmodus
@@ -150,8 +185,14 @@ De numerieke generator gebruikt per niveau meerdere strategieen door elkaar, did
 - N2: grotere constante stap (kleine en grotere startgetallen), dalende reeks die door nul zakt, reeks van kwartjes (25/50), constante factor (x2/x3), halveren.
 - N3: veranderende stap (oplopend/aflopend), delen (:2/:3), stijgende reeks die onder nul begint, grotere ronde getallen, twee verweven reeksen, verweven reeks met een constante tweede reeks, verweven reeks die door nul zakt, afwisselend +a en -b.
 - N4: afwisselend x en + of x en -, afwisselend x4 en :2, recursief (vorige x m + c, c mag negatief), grotere factor, stap die door nul kantelt, stijgende reeks vanaf een negatief startgetal, verweven met een dalende tweede reeks, zigzag die naar negatieve getallen zakt, priemgetallen. Priemgetallen en de verweven reeks met grotere getallen zijn herkenwerk in plaats van redeneerwerk en horen daarom hier thuis, niet op N5.
-- N5: Fibonacci, negatieve factor (wisselend teken), afwisselend x en : met grotere factoren, zwaardere recursie, een verweven reeks waarvan de eerste reeks verdubbelt en de tweede daalt, een reeks waarvan de verschillen verdubbelen, plus machtreeksen (kwadraten, derdemachten, machten van 2 met +/-1).
-- N6: som van de drie voorgaande (tribonacci), vorige min de term daarvoor (zakt door nul, herhaalt pas na zes termen), producten van twee opeenvolgende getallen, drie verweven reeksen, machten van 3 met verschuiving, verschillen die verdrievoudigen, en recursie met grotere factor en constante.
+- N5: Fibonacci, negatieve factor (wisselend teken), afwisselend x en : met grotere factoren, zwaardere recursie, een verweven reeks waarvan de eerste reeks verdubbelt en de tweede daalt, een reeks waarvan de verschillen verdubbelen, een cyclus van drie bewerkingen die elkaar afwisselen (`opcycle3`, zeven termen zodat twee volle rondes zichtbaar zijn), een stap die van de plek in de reeks afhangt (`posstep`, stap n = k x n x n), plus machtreeksen (kwadraten, derdemachten, machten van 2 met +/-1).
+- N6: som van de drie voorgaande (tribonacci), vorige min de term daarvoor (zakt door nul, herhaalt pas na zes termen), producten van twee opeenvolgende getallen, drie verweven reeksen, machten van 3 met verschuiving, verschillen die verdrievoudigen, recursie met grotere factor en constante, `opcycle3` met een grotere factor, en een reeks waarvan pas het derde verschil constant is (`thirdorder`).
+
+De keuze voor `opcycle3`, `posstep` en `thirdorder` op de bovenkant volgt de literatuur over itemmoeilijkheid bij cijferreeksen (zie "Wetenschappelijke onderbouwing"): het aantal regels en het aantal bewerkingen per stap zijn de sterkste voorspellers. De variant `a_n = a_(n-1) + n x k` is bewust weggelaten: die geeft een constant tweede verschil en is dus dezelfde opgave als `arithmetic2`.
+
+**Verweven reeksen: welke reeks gevraagd wordt, wisselt.** Bij `interwoven`, `interwoven3` en `interwovengeo` hoorde het vraagteken altijd bij de eerste reeks. Dat is een exploit: wie hem doorheeft hoeft de tweede reeks nooit te lezen. De gevraagde reeks wordt nu geloot en de rij wordt daarvoor een of twee termen langer, zodat de positie van het vraagteken eenduidig bepaalt bij welke reeks het hoort (en de test dat onafhankelijk kan afleiden). Uitzondering: de N3-variant met een constante tweede reeks blijft reeks A, anders is de vraag "schrijf hetzelfde getal nog eens op".
+
+**Raster** (`numericGrid`, N3-N6, 3x3): N3 rijregel met een bewerking (som, verschil), N4 kolomregel (bovenste twee vermenigvuldigd geeft het onderste; dit is de vorm uit de politie-oefensets), N5 rijregel met twee bewerkingen ((a+b) x k, a x k - b), N6 rij- en kolomregel tegelijk of een regel over de diagonaal. Het lege vakje varieert over alle negen plekken. Drie identieke lijnen worden geweigerd, want dan is het antwoord over te schrijven.
 
 **Variatie in getallen** is bewust breed: naast kleine reeksen komen op elk niveau ook reeksen met tientallen of honderdtallen voorbij (ronde getallen, negatieve startgetallen). `__tests__/numeric.test.ts` bewaakt dat elk niveau zowel kleine als grotere getallen oplevert, zodat opgaven niet altijd hetzelfde beeld hebben.
 
@@ -170,16 +211,31 @@ Ook de letter-generator werkt met families (zie `generators/letters.ts`, `Letter
 - L2: grotere constante stap, oplopende stap, twee afwisselende stappen.
 - L3: veranderende stap (groter/kleiner), grotere afwisselende stappen, twee verweven reeksen, letterparen met grotere sprong.
 - L4: sterk oplopende stap, zigzag (vooruit/achteruit), verweven met een teruglopende reeks, reeks vanaf het begin verweven met een reeks vanaf het eind van het alfabet, paren waarvan de letters uit elkaar lopen.
-- L5: stap volgens Fibonacci, drie verweven reeksen, zigzag met netto achterwaartse drift, sterk oplopende stap, verweving en spiegeling met grotere stappen.
-- L6: plaatsen in het alfabet die opeenvolgende priemgetallen zijn, sprong die verdubbelt, drie verweven reeksen met grotere stappen waarvan er een terugloopt, fibonacci-stap met grotere beginstappen, paren waarvan de eerste letter versnelt en de tweede een vaste stap houdt, spiegeling met grote stappen.
+- L5: stap volgens Fibonacci, drie verweven reeksen, zigzag met netto achterwaartse drift, sterk oplopende stap, verweving en spiegeling met grotere stappen, een cyclus van drie sprongen (`cycleThree`), en een sprong die van de plek in de reeks afhangt en van richting wisselt (`positionStep`).
+- L6: plaatsen in het alfabet die opeenvolgende priemgetallen zijn, sprong die verdubbelt, drie verweven reeksen met grotere stappen waarvan er een terugloopt, fibonacci-stap met grotere beginstappen, paren waarvan de eerste letter versnelt en de tweede een vaste stap houdt, spiegeling met grote stappen, `cycleThree` en `positionStep` met grotere waarden, plus `reverseAlphabet`.
+
+`reverseAlphabet` telt de plaatsen vanaf de achterkant (Z=1 ... A=26) en zet daar opeenvolgende priemgetallen neer. Bewust waardegebonden en niet een nette rekenregel: bij een rekenregel vanaf Z is de reeks net zo goed vanaf A op te lossen en voegt de omkering niets toe. De uitleg noemt de telrichting met een voorbeeld.
+
+Net als bij de cijferpatronen wisselt bij `interwovenPair`, `interwovenTriple` en `mirrorPair` welke reeks gevraagd wordt; de gevraagde reeks toont altijd drie letters, dus de lengte van de rij bepaalt eenduidig welke reeks het vraagteken voortzet.
 
 Een reeks wordt waar mogelijk zo in het alfabet gelegd dat er geen omslag van Z naar A nodig is. Op niveau 1 en 2 past dat altijd; komt een omslag op hogere niveaus toch voor, dan wijst de uitleg de gebruiker erop.
+
+## Eenduidigheid bij odd-one-out
+
+"Welke hoort niet in de rij" is de vorm waar dubbelzinnigheid het snelst toeslaat, dus die wordt in de **generator** afgedwongen en niet alleen in de test. Een kandidaat-rij wordt tegen alle bekende lezingen gehouden; hij gaat pas de deur uit als de rij zelf geen regel volgt en er precies **een** plaats is waarvan vervanging hem kloppend maakt. Anders opnieuw loten, met een harde poging-limiet en een deterministische terugval. De controle rekent bij letters modulo 26, zodat een letter die alleen via de Z-naar-A-omslag zou kloppen ook wordt betrapt.
+
+Twee bevindingen uit die controle zitten in de code verankerd:
+- Een rij met een **vaste stap van zeven letters** is inherent dubbelzinnig: de drie letters op de oneven plaatsen zijn met een enkele vervanging altijd kloppend te maken als "twee verweven reeksen", dus er zijn dan twee aanwijsbare letters. Die basis is daarom negen letters lang.
+- Bij cijfers geldt hetzelfde voor verweven reeksen met drie termen per reeks: `oddInterwoven` gebruikt daarom vier termen per reeks (rij van 8).
+
+De bedorven term wijkt nooit met 1 af (dat leest te vaak als "de stap verandert daar") en staat nooit op de eerste twee of de laatste plaats.
 
 ## Itemkwaliteit (belangrijk)
 
 - Elk item heeft **exact één** eenduidig juist antwoord. Houd generatoren bewust beperkt om dubbelzinnige reeksen te voorkomen.
-- Voor elke generator een **Vitest-test** die controleert dat het opgegeven juiste antwoord echt klopt en dat geen enkele afleider ook een geldige voortzetting is.
+- Voor elke generator een **Vitest-test** die controleert dat het opgegeven juiste antwoord echt klopt en dat geen enkele afleider ook een geldige voortzetting is. De verificatie is **onafhankelijk**: hij herberekent het antwoord met eigen code, niet met de generatorcode.
 - Woordrelaties niet in de browser genereren: gebruik de gecureerde, handmatig gecontroleerde bank.
+- Bij dubbele analogieën zijn de afleiders altijd van drie soorten: een paar waarvan de linkerhelft klopt maar de rechter niet, een paar waarvan de rechterhelft klopt maar de linker niet, en een inhoudelijk verwant paar in een andere relatie.
 
 ## Bouwvolgorde
 

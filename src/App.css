@@ -366,6 +366,40 @@ button {
   word-break: break-word;
 }
 
+/* Matrix-opgave: vakjes met getallen waarvan er precies een leeg is. Het raster
+   krijgt een maximale breedte zodat het op telefoonbreedte nooit horizontaal
+   scrollt, en de vakjes blijven met aspect-ratio bijna vierkant. */
+.prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 320px;
+  margin: 16px auto 0;
+}
+
+.grid-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 5 / 4;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-h);
+  font-size: clamp(15px, 4.5vw, 22px); /* vier cijfers passen ook op 375px */
+  font-weight: 700;
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+/* Het gevraagde vakje moet er meteen uit springen */
+.grid-cell-missing {
+  border: 2px dashed var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .options {
   display: grid;
   grid-template-columns: 1fr 1fr;

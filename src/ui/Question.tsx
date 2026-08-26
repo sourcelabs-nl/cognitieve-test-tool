@@ -3,11 +3,12 @@
 // testmodus gaat het meteen door. Halverwege verschijnt een motiverend feit.
 
 import { Flame, Lightbulb, TrendingUp, X } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import type { Category, Mode, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { useSession } from '../state/useSession';
 import { SpeakButton } from './SpeakButton';
-import { toSpoken } from './speech';
+import { gridToSpoken, toSpoken } from './speech';
 
 interface Props {
   category: Category;
@@ -26,6 +27,12 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
   const helpAvailable = mode === 'practice' && !feedback;
 
   const progress = Math.round(((itemNumber - 1) / totalItems) * 100);
+
+  // Bij een raster staat de opgave niet in de prompt, dus die moet apart mee
+  // naar de voorleesknop.
+  const spokenQuestion = item.grid
+    ? `${toSpoken(item.prompt)} ${gridToSpoken(item.grid)}`
+    : toSpoken(item.prompt);
 
   // Bepaalt de css-klasse van een optieknop op basis van de feedback.
   const optionClass = (index: number): string => {
@@ -79,11 +86,31 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
 
       <div className="prompt">
         <div className="prompt-top">
-          <SpeakButton text={toSpoken(item.prompt)} label="Lees de vraag voor" />
+          <SpeakButton text={spokenQuestion} label="Lees de vraag voor" />
         </div>
         {item.prompt.split('\n').map((line, i) => (
           <p key={i} className={i === 0 ? 'prompt-text' : 'prompt-sequence'}>{line}</p>
         ))}
+        {item.grid && (
+          // Bewust een div-grid en geen <table>: het raster is een plaatje van de
+          // opgave, geen gegevenstabel om doorheen te navigeren. Een label plus de
+          // cellen in leesvolgorde vertelt alles wat nodig is; rij- en kolomkoppen
+          // die een tabel verwacht zijn er niet.
+          <div
+            className="prompt-grid"
+            role="group"
+            aria-label="Raster met getallen"
+            style={{ '--cols': item.grid.cols } as CSSProperties}
+          >
+            {item.grid.cells.map((cell, i) =>
+              cell === '?' ? (
+                <span key={i} className="grid-cell grid-cell-missing" aria-label="gevraagd vakje">?</span>
+              ) : (
+                <span key={i} className="grid-cell">{cell}</span>
+              ),
+            )}
+          </div>
+        )}
       </div>
 
       <div className="options">

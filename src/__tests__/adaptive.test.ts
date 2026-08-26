@@ -12,6 +12,7 @@ function fakeItem(level: number, correct: boolean): { item: Item; chosenIndex: n
   const item: Item = {
     id: `sim-${level}`,
     category: 'numeric',
+    form: 'numericSeries',
     level,
     prompt: 'sim',
     options: ['a', 'b', 'c', 'd'],

@@ -1,9 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { MAX_LEVEL } from '../engine/types';
-import { generateVerbal, verbalBank, resetVerbalHistory } from '../generators/verbal';
+import {
+  generateVerbal,
+  verbalBank,
+  resetVerbalHistory,
+  resetVerbalDoubleHistory,
+} from '../generators/verbal';
 
 describe('woordrelaties-bank', () => {
-  beforeEach(resetVerbalHistory);
+  beforeEach(() => {
+    resetVerbalHistory();
+    resetVerbalDoubleHistory();
+  });
 
   it('elk item heeft 4 unieke opties en een geldige correctIndex', () => {
     for (const entry of verbalBank()) {
@@ -40,10 +48,30 @@ describe('woordrelaties-bank', () => {
     for (let level = 1; level <= MAX_LEVEL; level++) {
       for (let i = 0; i < 50; i++) {
         const item = generateVerbal(level);
+        expect(item.category).toBe('verbal');
+        expect(['verbalSingle', 'verbalDouble']).toContain(item.form);
         expect(item.options).toHaveLength(4);
         expect(item.options[item.correctIndex]).toBeTruthy();
         expect(item.prompt).toContain('?');
         expect(item.explanation.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  // De vorm bepaalt hoe de opgave eruitziet: bij een enkele analogie ontbreekt
+  // een woord, bij een dubbele twee, en dan is elke optie een woordpaar.
+  it('de vorm past bij de opgave en de opties', () => {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
+      for (let i = 0; i < 50; i++) {
+        const item = generateVerbal(level);
+        if (item.form === 'verbalDouble') {
+          expect(item.prompt).toContain('? : ');
+          for (const option of item.options) expect(option).toContain(' : ');
+        } else {
+          expect(item.prompt).not.toContain('? : ');
+          expect(item.prompt.endsWith(' : ?')).toBe(true);
+          for (const option of item.options) expect(option).not.toContain(' : ');
+        }
       }
     }
   });

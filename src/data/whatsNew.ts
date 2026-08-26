@@ -16,6 +16,19 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: '1.2.0',
+    date: '2026-08-26',
+    items: [
+      'Er zijn drie nieuwe soorten vragen bijgekomen, dezelfde soorten die je in de echte cognitieve capaciteitentest van de politie tegenkomt.',
+      'Cijferpatronen in een raster: getallen staan in vakjes en de regel loopt per rij of per kolom. Een vakje is leeg, dat vul jij in.',
+      '"Welke hoort niet in de rij": een rij cijfers of letters volgt bijna helemaal een regel, en precies een van hen breekt hem. Jij wijst hem aan.',
+      'Dubbele woordrelaties: er ontbreken nu soms twee woorden in plaats van een, en je kiest uit vier woordparen. Er zijn er 40 bijgekomen.',
+      'De reeksen op niveau 5 en 6 zijn zwaarder geworden. Er komen nu ook reeksen voorbij waarin drie bewerkingen elkaar afwisselen, waarin de stap afhangt van de plek in de reeks, en waarin je pas het patroon ziet als je de verschillen van de verschillen bekijkt.',
+      'Bij letterpatronen op het hoogste niveau kun je nu een reeks tegenkomen die je vanaf de achterkant van het alfabet moet tellen.',
+      'Staan er twee of drie reeksen door elkaar, dan hoort het vraagteken niet langer altijd bij de eerste reeks. Je moet dus zelf kijken welke reeks aan de beurt is.',
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-08-24',
     items: [

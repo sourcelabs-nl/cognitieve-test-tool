@@ -8,11 +8,16 @@ import {
   type LetterSeries,
 } from '../generators/letters';
 
+// De families die `buildLetterSeries` kan opleveren. De familie 'oddOne' staat
+// er bewust niet bij: die vraagvorm heeft een eigen bouwer en een eigen test
+// (letterOddOne.test.ts).
 const ALL_FAMILIES: LetterFamily[] = [
   'step',
   'changingStep',
   'alternating',
   'zigzag',
+  'cycleThree',
+  'positionStep',
   'interwoven',
   'interwovenTriple',
   'mirror',
@@ -21,6 +26,7 @@ const ALL_FAMILIES: LetterFamily[] = [
   'pairsChanging',
   'doublingStep',
   'primePositions',
+  'reverseAlphabet',
   'fibStep',
 ];
 
@@ -39,6 +45,12 @@ function fdiff(a: number, b: number): number {
 
 function forwardDiffs(positions: number[]): number[] {
   return positions.slice(1).map((p, i) => fdiff(positions[i], p));
+}
+
+// Stap met teken, in het bereik -13..12. Bruikbaar zolang de stappen in de
+// generator kleiner zijn dan 13, wat voor alle families geldt.
+function sdiff(a: number, b: number): number {
+  return ((((b - a + 13) % 26) + 26) % 26) - 13;
 }
 
 function normalise(index: number): number {
@@ -116,6 +128,15 @@ function expectedAnswer(series: LetterSeries): string {
     return letterAt(PRIMES[start + 5] - 1);
   }
 
+  if (family === 'reverseAlphabet') {
+    // De plaatsen geteld vanaf Z (Z=1, ... A=26) zijn opeenvolgende priemgetallen.
+    const fromZ = p.map((position) => 26 - position);
+    const start = PRIMES.indexOf(fromZ[0]);
+    expect(start).toBeGreaterThanOrEqual(0);
+    fromZ.forEach((value, i) => expect(value).toBe(PRIMES[start + i]));
+    return letterAt(26 - PRIMES[start + 5]);
+  }
+
   if (family === 'alternating' || family === 'zigzag') {
     const diffs = forwardDiffs(p);
     expect(diffs[2]).toBe(diffs[0]);
@@ -123,17 +144,40 @@ function expectedAnswer(series: LetterSeries): string {
     return letterAt(last + diffs[0]);
   }
 
-  if (family === 'interwovenTriple') {
-    // Reeks A staat op de posities 0, 3 en 6.
-    const stepA = fdiff(p[0], p[3]);
-    expect(fdiff(p[3], p[6])).toBe(stepA);
-    return letterAt(p[6] + stepA);
+  if (family === 'cycleThree') {
+    // Zeven letters, dus zes sprongen: twee volledige rondes van drie stappen.
+    const diffs = forwardDiffs(p);
+    expect(diffs).toHaveLength(6);
+    for (let i = 3; i < 6; i++) expect(diffs[i]).toBe(diffs[i - 3]);
+    // Drie verschillende stappen, anders is het geen periode van drie.
+    expect(new Set(diffs.slice(0, 3)).size).toBe(3);
+    return letterAt(last + diffs[0]);
   }
 
-  // interwoven en mirror: reeks A staat op de posities 0, 2 en 4.
-  const stepA = fdiff(p[0], p[2]);
-  expect(fdiff(p[2], p[4])).toBe(stepA);
-  return letterAt(p[4] + stepA);
+  if (family === 'positionStep') {
+    // De n-de sprong is n keer de eerste sprong en wisselt van richting.
+    const diffs = p.slice(1).map((position, i) => sdiff(p[i], position));
+    const unit = diffs[0];
+    expect(unit).toBeGreaterThan(0);
+    diffs.forEach((d, i) => expect(d).toBe((i % 2 === 0 ? 1 : -1) * (i + 1) * unit));
+    return letterAt(last + 5 * unit);
+  }
+
+  if (family === 'interwovenTriple') {
+    // De gevraagde reeks toont altijd drie letters, dus de lengte van de rij
+    // verraadt welke van de drie reeksen het vraagteken voortzet.
+    const ask = p.length % 3;
+    const stepA = fdiff(p[ask], p[ask + 3]);
+    expect(fdiff(p[ask + 3], p[ask + 6])).toBe(stepA);
+    return letterAt(p[ask + 6] + stepA);
+  }
+
+  // interwoven en mirror: bij zes getoonde letters hoort het vraagteken bij de
+  // reeks op de oneven plaatsen, bij zeven letters bij die op de even plaatsen.
+  const start = p.length % 2 === 0 ? 0 : 1;
+  const stepA = fdiff(p[start], p[start + 2]);
+  expect(fdiff(p[start + 2], p[start + 4])).toBe(stepA);
+  return letterAt(p[start + 4] + stepA);
 }
 
 describe('letterpatronen-generator', () => {
@@ -174,7 +218,7 @@ describe('letterpatronen-generator', () => {
   });
 
   it('elk niveau biedt meerdere families (variatie tegen herhaling)', () => {
-    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 6 };
+    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 8, 6: 9 };
     for (let level = 1; level <= MAX_LEVEL; level++) {
       const seen = new Set<LetterFamily>();
       for (let i = 0; i < 500; i++) seen.add(buildLetterSeries(level).family);
@@ -189,6 +233,22 @@ describe('letterpatronen-generator', () => {
       for (let i = 0; i < 300; i++) {
         const series = buildLetterSeries(level);
         expect(series.explanation).not.toContain('na Z begint het alfabet');
+      }
+    }
+  });
+
+  // Geldt voor beide vraagvormen: de hulptekst zet de eerste denkstap, maar
+  // laat de laatste stap aan de gebruiker.
+  it('de hulptekst rekent het antwoord niet voor en is niet de uitleg', () => {
+    for (let level = 1; level <= MAX_LEVEL; level++) {
+      for (let i = 0; i < 300; i++) {
+        const item = generateLetters(level);
+        const answer = item.options[item.correctIndex];
+        expect(item.hint.step).not.toContain(`= ${answer}`);
+        expect(item.hint.step).not.toBe(item.explanation);
+        expect(item.hint.step).not.toContain(item.explanation);
+        expect(item.explanation).not.toContain(item.hint.step);
+        expect(item.hint.step.length).toBeGreaterThan(40);
       }
     }
   });

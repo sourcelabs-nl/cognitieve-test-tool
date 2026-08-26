@@ -1,13 +1,25 @@
-// Letterpatronen: procedureel gegenereerde letterreeksen op niveau 1..6.
+// Letterpatronen: procedureel gegenereerde opgaven op niveau 1..6.
 // Letters worden gerekend als posities A=0..Z=25 met modulo-26 wrap.
+//
+// Er zijn twee vraagvormen. De reeks ('letterSeries') vraagt om de volgende
+// letter; "welke hoort niet in de rij" ('letterOddOne') toont een rij die op
+// precies een plaats de regel breekt. Beide vormen komen zo in de echte
+// politietest voor.
 //
 // Net als bij de cijferpatronen zijn er per niveau meerdere families, zodat
 // dezelfde puzzelvorm niet steeds terugkomt. De reeks wordt waar mogelijk zo
 // in het alfabet gelegd dat er geen omslag van Z naar A nodig is; lukt dat
 // niet (bij grote stappen), dan wijst de uitleg de gebruiker daarop.
+//
+// De zwaarte van een item wordt gestuurd met de knoppen die uit onderzoek naar
+// inductief redeneren komen (Holzman 1983; Arendasy & Sommer 2012): het aantal
+// regels, het aantal verweven periodes, het aantal bewerkingen per stap en de
+// complexiteit van de regel zelf. Op niveau 5 en 6 draaien we vooral aan het
+// aantal regels (drie stappen die zich herhalen, drie verweven reeksen) en aan
+// regels die niet met een vaste sprong te vangen zijn.
 
 import { MAX_LEVEL, MIN_LEVEL, type Item } from '../engine/types';
-import { randInt, pick, buildOptions } from './random';
+import { randInt, pick, shuffle, buildOptions } from './random';
 import { stepLabel } from './format';
 import { STRATEGY_HINTS } from './hints';
 
@@ -22,11 +34,20 @@ function indexOfLetter(letter: string): number {
   return letter.charCodeAt(0) - A;
 }
 
+function mod26(value: number): number {
+  return ((value % 26) + 26) % 26;
+}
+
+// Rangtelwoorden voor de uitleg; langer dan de langste rij die we tonen.
+const ORDINALS = ['1e', '2e', '3e', '4e', '5e', '6e', '7e', '8e', '9e', '10e', '11e', '12e'];
+
 export type LetterFamily =
   | 'step' // constante stap vooruit of achteruit
   | 'changingStep' // stap die groter of kleiner wordt
   | 'alternating' // twee stappen vooruit die elkaar afwisselen
   | 'zigzag' // afwisselend vooruit en achteruit
+  | 'cycleThree' // drie stappen die zich steeds herhalen
+  | 'positionStep' // de n-de sprong is n keer een vaste waarde
   | 'interwoven' // twee verweven reeksen
   | 'interwovenTriple' // drie verweven reeksen
   | 'mirror' // een reeks vanaf het begin en een vanaf het eind van het alfabet
@@ -35,7 +56,9 @@ export type LetterFamily =
   | 'pairsChanging' // letterparen waarvan de eerste letter versnelt
   | 'doublingStep' // stap verdubbelt elke keer
   | 'primePositions' // plaatsen in het alfabet zijn opeenvolgende priemgetallen
-  | 'fibStep'; // stap is de som van de twee vorige stappen
+  | 'reverseAlphabet' // de plaatsen worden vanaf Z geteld
+  | 'fibStep' // stap is de som van de twee vorige stappen
+  | 'oddOne'; // welke hoort niet in de rij (eigen bouwer, zie buildLetterOddOne)
 
 export interface LetterSeries {
   tokens: string[]; // getoonde reeks; een token is een of twee letters
@@ -58,6 +81,13 @@ function randIntExcept(min: number, max: number, not: number): number {
   let value = randInt(min, max);
   while (value === not) value = randInt(min, max);
   return value;
+}
+
+// Zet een rij stappen om naar posities, beginnend bij 0.
+function cumulative(steps: number[]): number[] {
+  const offsets = [0];
+  for (const step of steps) offsets.push(offsets[offsets.length - 1] + step);
+  return offsets;
 }
 
 // --- Opbouw van een reeks uit posities ---
@@ -174,79 +204,158 @@ function twoStepCycle(first: number, second: number, family: LetterFamily): Offs
   };
 }
 
-// Twee verweven reeksen. De gevraagde letter hoort altijd bij de eerste reeks
-// (de oneven posities), zodat het antwoord eenduidig is.
-function interwovenPair(stepA: number, gap: number, stepB: number): OffsetPattern {
+// Drie stappen die zich steeds herhalen, bijvoorbeeld +2, +5, -1, +2, +5, -1.
+// Zwaarder dan twee afwisselende stappen: de gebruiker moet drie regels
+// vasthouden en bovendien uittellen welke er nu aan de beurt is. Er worden
+// zeven letters getoond (twee volledige rondes), zodat de periode van drie
+// eenduidig af te lezen is.
+function threeStepCycle(first: number, second: number, third: number): OffsetPattern {
+  const cycle = [first, second, third];
+  const offsets = cumulative([0, 1, 2, 3, 4, 5].map((i) => cycle[i % 3]));
+  const labels = cycle.map(stepLabel).join(', ');
+  return {
+    family: 'cycleThree',
+    offsets,
+    answerOffset: offsets[6] + first,
+    describe: (tokens, answer) =>
+      `Er herhalen zich drie stappen: ${labels}, ${labels}, ... Na twee volledige rondes is ${stepLabel(first)} weer aan de beurt, dus na ${tokens[6]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. Twee sprongen die elkaar afwisselen verklaren deze rij niet: schrijf alle zes de sprongen op en kijk vanaf welke sprong het rijtje zichzelf herhaalt.`,
+  };
+}
+
+// De n-de sprong is n keer een vaste waarde en wisselt telkens van richting:
+// +u, -2u, +3u, -4u, ... De sprong hangt dus af van de plaats in de reeks en
+// niet van de vorige sprong.
+function positionStep(unit: number): OffsetPattern {
+  const steps = [1, 2, 3, 4, 5].map((n) => (n % 2 === 1 ? 1 : -1) * n * unit);
+  const offsets = cumulative(steps.slice(0, 4));
+  return {
+    family: 'positionStep',
+    offsets,
+    answerOffset: offsets[4] + steps[4],
+    describe: (tokens, answer) =>
+      `De sprongen worden steeds een stap groter en wisselen van richting: ${steps
+        .slice(0, 4)
+        .map(stepLabel)
+        .join(', ')}, ... De vijfde sprong is ${stepLabel(steps[4])}, dus na ${tokens[4]} volgt ${answer}.`,
+    hint: (tokens) =>
+      `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De reeks gaat om en om vooruit en achteruit, maar niet even ver. Let op hoe groot elke sprong is en vergelijk dat met de plaats van die sprong in de rij.`,
+  };
+}
+
+// Twee verweven reeksen. Wisselend wordt naar de reeks op de oneven plaatsen
+// gevraagd of naar die op de even plaatsen: hoorde het vraagteken altijd bij de
+// eerste reeks, dan was de opgave veel makkelijker zodra de gebruiker dat
+// doorhad. Welke reeks gevraagd wordt volgt uit de lengte van de getoonde rij,
+// en de gevraagde reeks toont altijd drie letters.
+function interwovenPair(
+  stepA: number,
+  gap: number,
+  stepB: number,
+  ask: 'A' | 'B',
+): OffsetPattern {
+  const posA = (i: number): number => i * stepA;
+  const posB = (i: number): number => gap + i * stepB;
+  const shown = [posA(0), posB(0), posA(1), posB(1), posA(2), posB(2)];
+  if (ask === 'B') shown.push(posA(3));
+  const askIdx = ask === 'A' ? [0, 2, 4] : [1, 3, 5];
+  const otherIdx = ask === 'A' ? [1, 3, 5] : [0, 2, 4];
+  const askStep = ask === 'A' ? stepA : stepB;
+  const otherStep = ask === 'A' ? stepB : stepA;
+  const askLabel = ask === 'A' ? 'oneven' : 'even';
+  const otherLabel = ask === 'A' ? 'even' : 'oneven';
   return {
     family: 'interwoven',
-    offsets: [0, gap, stepA, gap + stepB, 2 * stepA, gap + 2 * stepB],
-    answerOffset: 3 * stepA,
+    offsets: shown,
+    answerOffset: ask === 'A' ? posA(3) : posB(3),
     describe: (tokens, answer) =>
-      `Twee verweven reeksen. De oneven posities lopen ${stepLabel(stepA)} (${tokens[0]}, ${tokens[2]}, ${tokens[4]}, ...), de even posities ${stepLabel(stepB)}. De gevraagde letter hoort bij de eerste reeks: na ${tokens[4]} volgt ${answer}.`,
+      `Twee verweven reeksen. De ${askLabel} plaatsen lopen ${stepLabel(askStep)} (${askIdx
+        .map((i) => tokens[i])
+        .join(', ')}, ...), de ${otherLabel} plaatsen lopen ${stepLabel(otherStep)} (${otherIdx
+        .map((i) => tokens[i])
+        .join(', ')}, ...). Het vraagteken staat op de ${ORDINALS[shown.length]} plaats en hoort dus bij de reeks van de ${askLabel} plaatsen: na ${tokens[askIdx[2]]} volgt ${answer}.`,
     hint: (tokens) =>
-      `De letters springen heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 1e, 3e en 5e letter: ${tokens[0]}, ${tokens[2]}, ${tokens[4]}. Dat is een nette reeks op zichzelf, en de gevraagde letter hoort daarbij.`,
+      `De letters springen heen en weer, want er staan twee reeksen door elkaar: ${[0, 2, 4]
+        .map((i) => tokens[i])
+        .join(', ')} en ${[1, 3, 5].map((i) => tokens[i]).join(', ')}. Tel na op welke plaats het vraagteken staat, want dat bepaalt bij welke van die twee reeksen het hoort.`,
   };
 }
 
 interface TripleOptions {
   stepMin: number; // ondergrens voor de stap van de gevraagde reeks
   stepMax: number;
-  backwards: boolean; // laat de tweede reeks teruglopen
+  backwards: boolean; // laat een van de andere reeksen teruglopen
+  ask: 0 | 1 | 2; // welke van de drie reeksen wordt gevraagd
 }
 
-// Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks.
-function interwovenTriple({ stepMin, stepMax, backwards }: TripleOptions): OffsetPattern {
-  // Reeks A is de gevraagde reeks; met stap 1 zou het antwoord te makkelijk
-  // af te lezen zijn.
-  const stepA = randInt(stepMin, stepMax);
-  const stepB = backwards ? -randInt(2, 4) : randInt(1, 3);
-  const stepC = randInt(1, 3);
-  const gapB = backwards ? randInt(10, 12) : randInt(4, 7);
-  const gapC = randInt(13, 16);
+// Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks. Ook hier
+// wisselt de gevraagde reeks; de rij wordt daarvoor een of twee letters langer
+// getoond, zodat de gevraagde reeks altijd drie letters laat zien.
+function interwovenTriple({ stepMin, stepMax, backwards, ask }: TripleOptions): OffsetPattern {
+  const steps = [randInt(1, 3), randInt(1, 3), randInt(1, 3)];
+  steps[ask] = randInt(stepMin, stepMax);
+  // Een van de niet-gevraagde reeksen loopt terug; dat maakt de opgave zwaarder
+  // zonder de gevraagde reeks zelf onleesbaar te maken.
+  if (backwards) steps[(ask + 1) % 3] = -randInt(2, 4);
+  const starts = [randInt(0, 1), randInt(5, 7), randInt(10, 12)];
+  const at = (slot: number): number => starts[slot % 3] + Math.floor(slot / 3) * steps[slot % 3];
+  const shownLength = 9 + ask;
+  const offsets = Array.from({ length: shownLength }, (_, slot) => at(slot));
+  const askIdx = [ask, ask + 3, ask + 6];
   return {
     family: 'interwovenTriple',
-    offsets: [
-      0,
-      gapB,
-      gapC,
-      stepA,
-      gapB + stepB,
-      gapC + stepC,
-      2 * stepA,
-      gapB + 2 * stepB,
-      gapC + 2 * stepC,
-    ],
-    answerOffset: 3 * stepA,
+    offsets,
+    answerOffset: at(9 + ask),
     describe: (tokens, answer) =>
-      `Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks. De eerste reeks is ${tokens[0]}, ${tokens[3]}, ${tokens[6]} en loopt ${stepLabel(stepA)}. De gevraagde letter hoort daarbij: na ${tokens[6]} volgt ${answer}.`,
+      `Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks. Het vraagteken staat op de ${ORDINALS[shownLength]} plaats en hoort bij de reeks ${askIdx
+        .map((i) => tokens[i])
+        .join(', ')}, die ${stepLabel(steps[ask])} loopt. Na ${tokens[askIdx[2]]} volgt ${answer}.`,
     hint: (tokens) =>
-      `Twee reeksen door elkaar levert hier niets op, probeer er drie. Kijk alleen naar de 1e, 4e en 7e letter: ${tokens[0]}, ${tokens[3]}, ${tokens[6]}. De gevraagde letter hoort bij die reeks.`,
+      `Twee reeksen door elkaar levert hier niets op, probeer er drie: elke derde letter hoort bij dezelfde reeks. Kijk naar de ${askIdx
+        .map((i) => ORDINALS[i])
+        .join(', ')} letter (${askIdx
+        .map((i) => tokens[i])
+        .join(', ')}) en tel na dat het vraagteken bij precies die reeks hoort.`,
   };
 }
 
 // Een reeks die vooraan in het alfabet begint, verweven met een reeks die
-// achteraan begint en terugloopt.
-function mirrorPair(forwardMin: number, forwardMax: number): LetterSeries {
+// achteraan begint en terugloopt. Ook hier wisselt de gevraagde reeks.
+function mirrorPair(forwardMin: number, forwardMax: number, ask: 'A' | 'B'): LetterSeries {
   const stepForward = randInt(forwardMin, forwardMax);
   const stepBack = randInt(1, 3);
   const startForward = randInt(0, 2);
   const startBack = randInt(23, 25);
+  const forwardAt = (i: number): number => startForward + i * stepForward;
+  const backAt = (i: number): number => startBack - i * stepBack;
   const positions = [
-    startForward,
-    startBack,
-    startForward + stepForward,
-    startBack - stepBack,
-    startForward + 2 * stepForward,
-    startBack - 2 * stepBack,
+    forwardAt(0),
+    backAt(0),
+    forwardAt(1),
+    backAt(1),
+    forwardAt(2),
+    backAt(2),
   ];
+  if (ask === 'B') positions.push(forwardAt(3));
+  const askIdx = ask === 'A' ? [0, 2, 4] : [1, 3, 5];
+  const askLabel = ask === 'A' ? 'oneven' : 'even';
   return letterSeries({
     family: 'mirror',
     positions,
-    answerIndex: startForward + 3 * stepForward,
+    answerIndex: ask === 'A' ? forwardAt(3) : backAt(3),
     describe: (tokens, answer) =>
-      `De oneven posities beginnen vooraan in het alfabet en lopen ${stepLabel(stepForward)} (${tokens[0]}, ${tokens[2]}, ${tokens[4]}, ...), de even posities beginnen achteraan en lopen ${stepLabel(-stepBack)} (${tokens[1]}, ${tokens[3]}, ${tokens[5]}, ...). De gevraagde letter hoort bij de eerste reeks: na ${tokens[4]} volgt ${answer}.`,
+      `De oneven plaatsen beginnen vooraan in het alfabet en lopen ${stepLabel(stepForward)} (${[0, 2, 4]
+        .map((i) => tokens[i])
+        .join(', ')}, ...), de even plaatsen beginnen achteraan en lopen ${stepLabel(-stepBack)} (${[1, 3, 5]
+        .map((i) => tokens[i])
+        .join(', ')}, ...). Het vraagteken staat op de ${ORDINALS[positions.length]} plaats, dus op een ${askLabel} plaats: na ${tokens[askIdx[2]]} volgt ${answer}.`,
     hint: (tokens) =>
-      `Hier staan twee reeksen door elkaar die elkaar vanaf beide uiteinden van het alfabet tegemoet komen. De 1e, 3e en 5e letter (${tokens[0]}, ${tokens[2]}, ${tokens[4]}) beginnen vooraan en lopen vooruit; de 2e, 4e en 6e (${tokens[1]}, ${tokens[3]}, ${tokens[5]}) beginnen achteraan en lopen terug. Volg alleen de eerste reeks.`,
+      `Hier staan twee reeksen door elkaar die elkaar vanaf beide uiteinden van het alfabet tegemoet komen: ${[0, 2, 4]
+        .map((i) => tokens[i])
+        .join(', ')} loopt vooruit en ${[1, 3, 5]
+        .map((i) => tokens[i])
+        .join(', ')} loopt terug. Tel na op welke plaats het vraagteken staat, want dat bepaalt welke van de twee je moet volgen.`,
   });
 }
 
@@ -289,6 +398,30 @@ function primePositions(): LetterSeries {
       `De plaatsen in het alfabet zijn opeenvolgende priemgetallen: ${positionList(tokens)}. Het priemgetal na ${values[4]} is ${values[5]}, en dat is de letter ${answer}.`,
     hint: (tokens) =>
       `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. De sprongen daartussen zijn onregelmatig, dus er zit geen rekenregel achter. Kijk eens door welke getallen die plaatsen deelbaar zijn: het gaat om een bekend rijtje getallen.`,
+  });
+}
+
+// Omgekeerd alfabet: de plaatsen worden niet vanaf A geteld maar vanaf Z
+// (Z=1, Y=2, ... A=26), en in die telling zijn het opeenvolgende priemgetallen.
+// Vanaf A geteld levert dat geen net patroon op, dus de gebruiker moet echt op
+// het idee komen om andersom te tellen. Zonder heldere uitleg achteraf is dit
+// een gemene opgave, daarom noemt de uitleg de telling met een voorbeeld.
+function reverseAlphabetPrimes(): LetterSeries {
+  const start = randInt(0, PRIME_POSITIONS.length - 6);
+  const values = PRIME_POSITIONS.slice(start, start + 6);
+  // Plaats 1 vanaf Z is Z zelf (index 25), plaats 26 is A (index 0).
+  const toIndex = (fromZ: number): number => 26 - fromZ;
+  const shownFromZ = values.slice(0, 5);
+  return letterSeries({
+    family: 'reverseAlphabet',
+    positions: shownFromZ.map(toIndex),
+    answerIndex: toIndex(values[5]),
+    describe: (tokens, answer) =>
+      `Tel de plaatsen niet vanaf A maar vanaf Z: Z=1, Y=2, X=3, ... A=26. In die telling staan hier ${tokens
+        .map((t, i) => `${t}=${shownFromZ[i]}`)
+        .join(', ')}, en dat zijn opeenvolgende priemgetallen. Het priemgetal na ${values[4]} is ${values[5]}, en de ${values[5]}e letter vanaf Z is ${answer}.`,
+    hint: (tokens) =>
+      `Vanaf A geteld leveren de plaatsen (${positionList(tokens)}) geen net patroon op. Probeer eens vanaf de andere kant te tellen: Z is dan de eerste letter, Y de tweede, en zo verder. Die getallen vormen wel een bekend rijtje.`,
   });
 }
 
@@ -444,6 +577,8 @@ function fibonacciSteps(a: number, b: number): OffsetPattern {
 // Niveau 1 en 2 blijven toegankelijk als instap; vanaf niveau 3 lopen zowel het
 // aantal families als de zwaarte op.
 
+const askSide = (): 'A' | 'B' => pick(['A', 'B'] as const);
+
 const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
   1: [
     () => fromOffsets(constantStep(randInt(1, 4))),
@@ -467,7 +602,9 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
     () => fromOffsets(twoStepCycle(randInt(2, 4), randInt(5, 7), 'alternating')),
     () => {
       const stepA = randInt(2, 4);
-      return fromOffsets(interwovenPair(stepA, randInt(9, 13), randIntExcept(2, 4, stepA)));
+      return fromOffsets(
+        interwovenPair(stepA, randInt(9, 13), randIntExcept(2, 4, stepA), askSide()),
+      );
     },
     () => steppingPairs(3, 4, 2),
   ],
@@ -477,8 +614,8 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
       const up = randInt(3, 6);
       return fromOffsets(twoStepCycle(up, -randIntExcept(1, 4, up), 'zigzag'));
     },
-    () => fromOffsets(interwovenPair(randInt(2, 4), randInt(14, 20), -randInt(2, 4))),
-    () => mirrorPair(1, 3),
+    () => fromOffsets(interwovenPair(randInt(2, 4), randInt(14, 20), -randInt(2, 4), askSide())),
+    () => mirrorPair(1, 3, askSide()),
     divergingPairs,
   ],
   5: [
@@ -486,24 +623,35 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
       const [a, b] = pick(FIB_STEP_STARTS);
       return fromOffsets(fibonacciSteps(a, b));
     },
-    () => fromOffsets(interwovenTriple({ stepMin: 2, stepMax: 3, backwards: false })),
+    () =>
+      fromOffsets(
+        interwovenTriple({ stepMin: 2, stepMax: 3, backwards: false, ask: pick([0, 1, 2] as const) }),
+      ),
     () => fromOffsets(twoStepCycle(randInt(2, 4), -randInt(5, 8), 'zigzag')),
-    () => fromOffsets(interwovenPair(randInt(4, 6), randInt(14, 20), -randInt(4, 6))),
+    () => fromOffsets(interwovenPair(randInt(4, 6), randInt(14, 20), -randInt(4, 6), askSide())),
     () => fromOffsets(changingStep(randInt(1, 2), 3)), // sterk oplopende stap
-    () => mirrorPair(2, 4),
+    () => mirrorPair(2, 4, askSide()),
+    () => fromOffsets(threeStepCycle(randInt(1, 3), randInt(4, 6), -randInt(1, 3))),
+    () => fromOffsets(positionStep(randInt(1, 2))),
   ],
   // Niveau 6: reeksen waarbij rekenen met de sprongen niet meer volstaat, of
-  // waarbij twee sporen tegelijk gevolgd moeten worden.
+  // waarbij meer dan twee sporen tegelijk gevolgd moeten worden.
   6: [
     primePositions,
+    reverseAlphabetPrimes,
     () => fromOffsets(doublingStep()),
-    () => fromOffsets(interwovenTriple({ stepMin: 3, stepMax: 5, backwards: true })),
+    () =>
+      fromOffsets(
+        interwovenTriple({ stepMin: 3, stepMax: 5, backwards: true, ask: pick([0, 1, 2] as const) }),
+      ),
     () => {
       const [a, b] = pick(FIB_STEP_STARTS_HARD);
       return fromOffsets(fibonacciSteps(a, b));
     },
     acceleratingPairs,
-    () => mirrorPair(4, 6),
+    () => mirrorPair(4, 6, askSide()),
+    () => fromOffsets(threeStepCycle(randInt(2, 4), randInt(6, 8), -randInt(3, 5))),
+    () => fromOffsets(positionStep(randInt(2, 3))),
   ],
 };
 
@@ -512,26 +660,352 @@ export function buildLetterSeries(level: number): LetterSeries {
   return pick(strategiesByLevel[clampLevel(level)])();
 }
 
+// --- Welke hoort niet in de rij ---
+//
+// Een rij van zes tot negen letters volgt een regel, met precies een letter die
+// hem breekt. De eenduidigheid is hier het hele probleem: een bedorven letter
+// kan per ongeluk als "de stap verandert daar" gelezen worden, of via de omslag
+// van Z naar A alsnog kloppen. Daarom wordt elke kandidaat getoetst met
+// `findUniqueBrokenIndex`: er moet precies een plaats zijn waarvan het
+// vervangen de hele rij weer kloppend maakt, en de rij zoals hij getoond wordt
+// mag zelf nog geen regel volgen.
+
+// De regels waartegen een rij getoetst wordt. Bewust ruimer dan de regels
+// waarop de rijen gebouwd worden: hoe meer lezingen we meenemen, hoe strenger
+// de controle en hoe kleiner de kans dat een gebruiker een tweede lezing vindt.
+// Alles rekent modulo 26, zodat een letter die alleen via de omslag klopt ook
+// als kloppend telt en de kandidaat dus verworpen wordt.
+type PositionRule = (positions: number[]) => boolean;
+
+function forwardSteps(positions: number[]): number[] {
+  return positions.slice(1).map((p, i) => mod26(p - positions[i]));
+}
+
+function allSame(values: number[]): boolean {
+  return values.every((v) => v === values[0]);
+}
+
+const ODD_ONE_RULES: PositionRule[] = [
+  // Vaste stap.
+  (p) => allSame(forwardSteps(p)),
+  // Stap die elke keer even veel verandert (bevat ook de vaste stap).
+  (p) => {
+    const d = forwardSteps(p);
+    if (d.length < 3) return false;
+    const increment = mod26(d[1] - d[0]);
+    return d.every((step, i) => step === mod26(d[0] + i * increment));
+  },
+  // Twee stappen die elkaar afwisselen.
+  (p) => {
+    const d = forwardSteps(p);
+    if (d.length < 4) return false;
+    return d.every((step, i) => step === d[i % 2]);
+  },
+  // Drie stappen die zich herhalen.
+  (p) => {
+    const d = forwardSteps(p);
+    if (d.length < 5) return false;
+    return d.every((step, i) => step === d[i % 3]);
+  },
+  // Twee verweven reeksen, elk met een vaste stap.
+  (p) => {
+    const even = p.filter((_, i) => i % 2 === 0);
+    const odd = p.filter((_, i) => i % 2 === 1);
+    if (even.length < 3 || odd.length < 3) return false;
+    return allSame(forwardSteps(even)) && allSame(forwardSteps(odd));
+  },
+  // Elke stap is de som van de twee vorige stappen.
+  (p) => {
+    const d = forwardSteps(p);
+    if (d.length < 4) return false;
+    return d.slice(2).every((step, i) => step === mod26(d[i] + d[i + 1]));
+  },
+  // Elke stap is twee keer de vorige.
+  (p) => {
+    const d = forwardSteps(p);
+    if (d.length < 3) return false;
+    return d.slice(1).every((step, i) => step === mod26(2 * d[i]));
+  },
+];
+
+function followsAnyRule(positions: number[]): boolean {
+  return ODD_ONE_RULES.some((rule) => rule(positions));
+}
+
+// Geeft de enige plaats terug waarvan het vervangen de rij kloppend maakt, of
+// null wanneer dat er geen of meer dan een zijn (dan is de opgave niet
+// eenduidig en wordt de kandidaat verworpen).
+function findUniqueBrokenIndex(positions: number[]): number | null {
+  if (followsAnyRule(positions)) return null;
+  let found = -1;
+  for (let i = 0; i < positions.length; i++) {
+    let fixable = false;
+    for (let value = 0; value < 26 && !fixable; value++) {
+      if (value === positions[i]) continue;
+      const candidate = [...positions];
+      candidate[i] = value;
+      fixable = followsAnyRule(candidate);
+    }
+    if (fixable) {
+      if (found >= 0) return null;
+      found = i;
+    }
+  }
+  return found >= 0 ? found : null;
+}
+
+export interface LetterOddOne {
+  tokens: string[]; // de getoonde rij
+  answer: string; // de letter die er niet bij hoort
+  distractors: string[]; // drie andere letters uit de getoonde rij
+  explanation: string;
+  hint: string;
+  family: LetterFamily; // altijd 'oddOne'
+  baseFamily: LetterFamily; // de regel waarop de rij gebouwd is
+  brokenIndex: number;
+}
+
+interface OddOneBase {
+  family: LetterFamily; // de regel waar de correcte rij op gebouwd is
+  offsets: number[]; // de correcte rij
+  rule: string; // omschrijving van de regel, voor de uitleg
+  focus: string; // zin in de hulptekst die de aanpak wijst, zonder de plaats
+}
+
+const FOCUS_STEPS =
+  'De sprongen tussen opeenvolgende letters volgen zelf een regel; leid die af uit het begin van de rij, want daar zit de afwijking meestal niet.';
+
+// Negen letters met een vaste stap. Korter kan niet: bij zeven letters is zo'n
+// rij ook te lezen als twee verweven reeksen, want een reeks van drie letters
+// is met een enkele vervanging altijd kloppend te maken. Dan zijn er twee
+// letters aan te wijzen die er niet bij horen.
+function constantBase(step: number): OddOneBase {
+  return {
+    family: 'step',
+    offsets: cumulative(Array.from({ length: 8 }, () => step)),
+    rule: `een vaste stap van ${stepLabel(step)} in het alfabet`,
+    focus: FOCUS_STEPS,
+  };
+}
+
+function oddConstant(): OddOneBase {
+  return constantBase(pick([1, -1]) * randInt(2, 3));
+}
+
+// Zeven letters met een stap die elke keer een groter of kleiner wordt. De
+// stappen 1..6 tellen op tot 21 en passen dus nog binnen het alfabet.
+function oddChanging(): OddOneBase {
+  const sign = pick([1, -1]);
+  const rising = pick([true, false]);
+  const steps = [0, 1, 2, 3, 4, 5].map((i) => sign * (rising ? 1 + i : 6 - i));
+  return {
+    family: 'changingStep',
+    offsets: cumulative(steps),
+    rule: `een stap die elke keer ${stepLabel(sign * (rising ? 1 : -1))} verandert (${steps
+      .slice(0, 3)
+      .map(stepLabel)
+      .join(', ')}, ...)`,
+    focus: FOCUS_STEPS,
+  };
+}
+
+// Acht letters met twee stappen die elkaar afwisselen: een kleine en een grote
+// stap vooruit, of een stap vooruit en een kleinere terug.
+function oddTwoStep(): OddOneBase {
+  const zigzag = pick([true, false]);
+  const first = zigzag ? randInt(3, 5) : randInt(1, 2);
+  const second = zigzag ? -randInt(1, 2) : randInt(4, 5);
+  const steps = [0, 1, 2, 3, 4, 5, 6].map((i) => (i % 2 === 0 ? first : second));
+  return {
+    family: 'alternating',
+    offsets: cumulative(steps),
+    rule: `twee stappen die elkaar afwisselen (${stepLabel(first)}, ${stepLabel(second)}, ${stepLabel(first)}, ${stepLabel(second)}, ...)`,
+    focus:
+      'De sprongen tussen opeenvolgende letters blijven niet gelijk maar wisselen elkaar af; leid dat patroon af uit het begin van de rij.',
+  };
+}
+
+// Acht letters: twee verweven reeksen van elk vier letters, zoals in de echte
+// politietest ("A - D - C - H - E - J - G - M").
+function oddInterwoven(): OddOneBase {
+  const stepA = randInt(2, 4);
+  const stepB = pick([true, false]) ? -randInt(1, 3) : randIntExcept(1, 4, stepA);
+  const gap = randInt(9, 12);
+  const offsets: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    offsets.push(i * stepA, gap + i * stepB);
+  }
+  return {
+    family: 'interwoven',
+    offsets,
+    rule: `twee verweven reeksen: de letters op de oneven plaatsen lopen ${stepLabel(stepA)} en die op de even plaatsen ${stepLabel(stepB)}`,
+    focus:
+      'De letters springen heen en weer: kijk apart naar de letters op de oneven plaatsen en naar die op de even plaatsen.',
+  };
+}
+
+// Zeven letters waarvan elke stap de som is van de twee vorige stappen.
+function oddFibonacci(): OddOneBase {
+  const sign = pick([1, -1]);
+  const steps = [1, 1, 2, 3, 5, 8].map((s) => sign * s);
+  return {
+    family: 'fibStep',
+    offsets: cumulative(steps),
+    rule: `een stap die steeds de som is van de twee vorige stappen (${steps
+      .slice(0, 4)
+      .map(stepLabel)
+      .join(', ')}, ...)`,
+    focus: FOCUS_STEPS,
+  };
+}
+
+// Acht letters met drie stappen die zich herhalen: drie regels tegelijk.
+function oddThreeCycle(): OddOneBase {
+  const cycle = pick([
+    [randInt(2, 3), randInt(4, 6), -randInt(1, 2)],
+    [-randInt(1, 2), randInt(4, 6), randInt(2, 3)],
+  ]);
+  const steps = [0, 1, 2, 3, 4, 5, 6].map((i) => cycle[i % 3]);
+  return {
+    family: 'cycleThree',
+    offsets: cumulative(steps),
+    rule: `drie stappen die zich steeds herhalen (${cycle.map(stepLabel).join(', ')}, ${cycle
+      .map(stepLabel)
+      .join(', ')}, ...)`,
+    focus:
+      'De sprongen tussen opeenvolgende letters herhalen zich, maar niet om en om; schrijf ze allemaal op en kijk waar het rijtje opnieuw begint.',
+  };
+}
+
+const oddOneBasesByLevel: Record<number, (() => OddOneBase)[]> = {
+  3: [oddConstant, oddChanging],
+  4: [oddChanging, oddTwoStep],
+  5: [oddTwoStep, oddInterwoven, oddFibonacci],
+  6: [oddInterwoven, oddFibonacci, oddThreeCycle],
+};
+
+// Hoe ver de bedorven letter van de juiste af ligt. Een verschil van 1 wordt te
+// vaak als een kleine verandering van de stap gelezen en valt daarom af.
+const CORRUPTIONS = [-4, -3, -2, 2, 3, 4];
+
+interface OddOneAttempt {
+  base: OddOneBase;
+  broken: number; // plaats van de bedorven letter
+  delta: number;
+  shiftRandomly: boolean; // legt de rij op een willekeurige plek in het alfabet
+}
+
+function makeOddOne({ base, broken, delta, shiftRandomly }: OddOneAttempt): LetterOddOne | null {
+  const shown = [...base.offsets];
+  shown[broken] += delta;
+  const min = Math.min(...shown, ...base.offsets);
+  const span = Math.max(...shown, ...base.offsets) - min;
+  // Past de rij niet zonder omslag, dan verwerpen we hem: bij deze vraagvorm is
+  // een omslag van Z naar A een tweede struikelblok te veel.
+  if (span > 25) return null;
+  const start = shiftRandomly ? randInt(0, 25 - span) - min : -min;
+  const positions = shown.map((o) => o + start);
+  // Alle getoonde letters moeten verschillen, anders is niet duidelijk welke
+  // letter een optie aanwijst.
+  if (new Set(positions).size !== positions.length) return null;
+  if (findUniqueBrokenIndex(positions) !== broken) return null;
+
+  const tokens = positions.map(letterAt);
+  const correctTokens = base.offsets.map((o) => letterAt(o + start));
+  const answer = tokens[broken];
+  return {
+    tokens,
+    answer,
+    distractors: shuffle(tokens.filter((_, i) => i !== broken)).slice(0, 3),
+    explanation: `De rij volgt ${base.rule}. Volgens die regel hoort de rij ${correctTokens.join(', ')} te zijn. Op de ${ORDINALS[broken]} plaats staat ${answer} in plaats van ${correctTokens[broken]}, dus ${answer} hoort niet in de rij.`,
+    hint: `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. ${base.focus} Reken de rij daarna vanaf het begin zelf door en vergelijk letter voor letter met wat er staat.`,
+    family: 'oddOne',
+    baseFamily: base.family,
+    brokenIndex: broken,
+  };
+}
+
+// Terugval wanneer het loten geen eenduidige rij oplevert: doorloopt een vaste
+// rij met vaste stap net zolang tot de controle slaagt. Geexporteerd zodat de
+// test kan vastleggen dat deze weg altijd een geldige opgave geeft.
+export function safeLetterOddOne(): LetterOddOne {
+  for (const step of [3, -3, 2, -2]) {
+    const base = constantBase(step);
+    for (const broken of [2, 3, 4, 5, 6, 7]) {
+      for (const delta of CORRUPTIONS) {
+        const candidate = makeOddOne({ base, broken, delta, shiftRandomly: false });
+        if (candidate) return candidate;
+      }
+    }
+  }
+  throw new Error('geen eenduidige "welke hoort niet in de rij" te maken');
+}
+
+// Bouwt een "welke hoort niet in de rij" voor niveau 3..6. Exporteerbaar voor tests.
+export function buildLetterOddOne(level: number): LetterOddOne {
+  const bases = oddOneBasesByLevel[Math.min(MAX_LEVEL, Math.max(3, clampLevel(level)))];
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const base = pick(bases)();
+    const candidate = makeOddOne({
+      base,
+      // Niet de eerste twee letters (daar leidt de gebruiker de regel uit af) en
+      // niet de laatste (die is dan niet van "de reeks gaat gewoon door" te
+      // onderscheiden).
+      broken: randInt(2, base.offsets.length - 2),
+      delta: pick(CORRUPTIONS),
+      shiftRandomly: true,
+    });
+    if (candidate) return candidate;
+  }
+  return safeLetterOddOne();
+}
+
 function clampLevel(level: number): number {
   return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
 }
+
+// Vanaf niveau 3 is ongeveer een op de vijf letteritems een "welke hoort niet
+// in de rij". Die verhouding staat hier en niet in `strategiesByLevel`, omdat
+// de twee vraagvormen elk hun eigen bouwer hebben; zo verdringt de nieuwe vorm
+// de reeksen niet, ongeacht hoeveel families er per niveau bijkomen.
+const ODD_ONE_LEVEL = 3;
+const ODD_ONE_IN = 5;
 
 let counter = 0;
 
 export function generateLetters(level: number): Item {
   const clamped = clampLevel(level);
+  counter += 1;
+  const id = `letters-${clamped}-${counter}`;
+
+  if (clamped >= ODD_ONE_LEVEL && randInt(1, ODD_ONE_IN) === 1) {
+    const odd = buildLetterOddOne(clamped);
+    const { options, correctIndex } = buildOptions(odd.answer, odd.distractors);
+    return {
+      id,
+      category: 'letters',
+      form: 'letterOddOne',
+      level: clamped,
+      prompt: `Welke letter hoort niet in de rij?\n\n${odd.tokens.join(', ')}`,
+      options,
+      correctIndex,
+      explanation: odd.explanation,
+      hint: { strategy: STRATEGY_HINTS.letterOddOne, step: odd.hint },
+    };
+  }
+
   const series = buildLetterSeries(clamped);
   const { options, correctIndex } = buildOptions(series.answer, series.distractors);
-  counter += 1;
   return {
-    id: `letters-${clamped}-${counter}`,
+    id,
     category: 'letters',
+    form: 'letterSeries',
     level: clamped,
     prompt: `Welke letter${series.answer.length > 1 ? 's komen' : ' komt'} er op de plek van het vraagteken?\n\n${series.tokens.join(', ')}, ?`,
     options,
     correctIndex,
     explanation: series.explanation,
-    hint: { strategy: STRATEGY_HINTS.letters, step: series.hint },
+    hint: { strategy: STRATEGY_HINTS.letterSeries, step: series.hint },
   };
 }
 

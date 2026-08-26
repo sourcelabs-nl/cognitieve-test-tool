@@ -19,11 +19,34 @@ export interface Hint {
   step: string; // de eerste concrete denkstap voor juist dit item
 }
 
+// De vraagvorm van een item. Binnen een categorie komen meerdere vormen voor,
+// zoals ook in de echte politietest: naast reeksen ook rasters, "welke hoort
+// niet in de rij" en dubbele analogieen. De vorm bepaalt welke aanpak-hulp de
+// gebruiker krijgt (zie generators/hints.ts).
+export type ItemForm =
+  | 'numericSeries'
+  | 'numericGrid'
+  | 'numericOddOne'
+  | 'letterSeries'
+  | 'letterOddOne'
+  | 'verbalSingle'
+  | 'verbalDouble';
+
+// Sommige items tonen hun opgave als raster in plaats van als rij: vakjes met
+// getallen waarvan er precies een leeg is. De regel loopt dan per rij of per
+// kolom, niet van links naar rechts door de hele reeks.
+export interface ItemGrid {
+  cols: number; // aantal kolommen; het aantal rijen volgt uit de lengte van cells
+  cells: string[]; // rij voor rij; het gevraagde vakje bevat '?'
+}
+
 export interface Item {
   id: string;
   category: ItemCategory;
+  form: ItemForm; // vraagvorm binnen de categorie
   level: number; // 1..6, moeilijkheid van dit item
   prompt: string; // vraagtekst
+  grid?: ItemGrid; // aanwezig bij matrix-items; de prompt bevat dan geen reeks
   options: string[]; // meerkeuze-opties
   correctIndex: number; // index van het juiste antwoord in options
   explanation: string; // uitleg, gebruikt voor feedback in oefenmodus

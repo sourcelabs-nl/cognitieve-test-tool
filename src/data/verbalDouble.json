@@ -1,0 +1,525 @@
+[
+  {
+    "level": 3,
+    "b": "ziekenhuis",
+    "c": "bakker",
+    "options": [
+      { "a": "arts", "d": "brood" },
+      { "a": "arts", "d": "bakkerij" },
+      { "a": "patient", "d": "oven" },
+      { "a": "brood", "d": "bakkerij" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is beroep en werkplek: een arts werkt in een ziekenhuis, een bakker in een bakkerij. Bij 'arts : brood' klopt de linkerkant wel, maar rechts staat dan een product in plaats van een werkplek."
+  },
+  {
+    "level": 3,
+    "b": "knippen",
+    "c": "pen",
+    "options": [
+      { "a": "papier", "d": "schrijven" },
+      { "a": "kapper", "d": "brief" },
+      { "a": "schaar", "d": "schrijven" },
+      { "a": "schaar", "d": "inkt" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is gereedschap en de handeling die je ermee uitvoert: met een schaar knip je, met een pen schrijf je. Bij 'papier : schrijven' klopt de rechterkant, maar papier is het materiaal dat geknipt wordt en geen gereedschap."
+  },
+  {
+    "level": 3,
+    "b": "boek",
+    "c": "wiel",
+    "options": [
+      { "a": "bladzijde", "d": "auto" },
+      { "a": "hoofdstuk", "d": "motor" },
+      { "a": "bladzijde", "d": "garage" },
+      { "a": "schrijver", "d": "bestuurder" }
+    ],
+    "correctIndex": 0,
+    "explanation": "De relatie is onderdeel en geheel: een bladzijde is een deel van een boek, een wiel een deel van een auto. Bij 'hoofdstuk : motor' klopt de linkerkant, maar een wiel is geen deel van een motor."
+  },
+  {
+    "level": 3,
+    "b": "rook",
+    "c": "virus",
+    "options": [
+      { "a": "brandweer", "d": "griep" },
+      { "a": "vuur", "d": "bacterie" },
+      { "a": "schoorsteen", "d": "dokter" },
+      { "a": "vuur", "d": "griep" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is oorzaak en gevolg: vuur veroorzaakt rook, een virus veroorzaakt griep. Bij 'vuur : bacterie' klopt de linkerkant, maar een bacterie is een tweede ziekteverwekker en geen gevolg van een virus."
+  },
+  {
+    "level": 3,
+    "b": "droog",
+    "c": "dag",
+    "options": [
+      { "a": "nat", "d": "ochtend" },
+      { "a": "nat", "d": "nacht" },
+      { "a": "water", "d": "nacht" },
+      { "a": "regen", "d": "slaap" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is tegenstelling: nat is het tegenovergestelde van droog, nacht van dag. Bij 'nat : ochtend' klopt de linkerkant, maar een ochtend is een deel van de dag en niet het tegenovergestelde."
+  },
+  {
+    "level": 3,
+    "b": "fruit",
+    "c": "mus",
+    "options": [
+      { "a": "sinaasappel", "d": "veren" },
+      { "a": "boom", "d": "vogel" },
+      { "a": "appel", "d": "vogel" },
+      { "a": "appel", "d": "nest" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is soort en categorie: een appel is een soort fruit, een mus een soort vogel. Bij 'boom : vogel' klopt de rechterkant, maar een boom is geen soort fruit; hij levert het."
+  },
+  {
+    "level": 3,
+    "b": "schilderij",
+    "c": "componist",
+    "options": [
+      { "a": "schilder", "d": "orkest" },
+      { "a": "kwast", "d": "symfonie" },
+      { "a": "museum", "d": "concert" },
+      { "a": "schilder", "d": "symfonie" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is maker en het werk dat hij maakt: een schilder maakt een schilderij, een componist een symfonie. Bij 'schilder : orkest' klopt de linkerkant, maar een orkest voert het werk uit en is niet het werk zelf."
+  },
+  {
+    "level": 3,
+    "b": "ruiken",
+    "c": "oog",
+    "options": [
+      { "a": "neus", "d": "zien" },
+      { "a": "mond", "d": "zien" },
+      { "a": "neus", "d": "bril" },
+      { "a": "snuiven", "d": "oogarts" }
+    ],
+    "correctIndex": 0,
+    "explanation": "De relatie is zintuig en zijn functie: met je neus ruik je, met je oog zie je. Bij 'mond : zien' klopt de rechterkant, maar met je mond proef je en ruik je niet."
+  },
+
+  {
+    "level": 4,
+    "b": "storm",
+    "c": "druppel",
+    "options": [
+      { "a": "bries", "d": "regen" },
+      { "a": "orkaan", "d": "stortbui" },
+      { "a": "windmeter", "d": "paraplu" },
+      { "a": "bries", "d": "stortbui" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is een lichte vorm tegenover een heftige vorm van hetzelfde verschijnsel: een bries is een zwakke wind en een storm een sterke, een druppel is weinig water en een stortbui veel. Bij 'orkaan : stortbui' klopt de rechterkant, maar een orkaan is juist heftiger dan een storm."
+  },
+  {
+    "level": 4,
+    "b": "telescoop",
+    "c": "archeoloog",
+    "options": [
+      { "a": "astronoom", "d": "sterren" },
+      { "a": "astronoom", "d": "schep" },
+      { "a": "sterrenwacht", "d": "schep" },
+      { "a": "planeet", "d": "opgraving" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is onderzoeker en het gereedschap waarmee hij werkt: een astronoom gebruikt een telescoop, een archeoloog een schep. Bij 'astronoom : sterren' klopt de linkerkant, maar sterren zijn het onderwerp van zijn werk en geen gereedschap."
+  },
+  {
+    "level": 4,
+    "b": "rouw",
+    "c": "wit",
+    "options": [
+      { "a": "grijs", "d": "onschuld" },
+      { "a": "verf", "d": "sneeuw" },
+      { "a": "zwart", "d": "onschuld" },
+      { "a": "zwart", "d": "bruiloft" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is een kleur en waar hij voor staat: zwart staat voor rouw, wit voor onschuld. Bij 'zwart : bruiloft' klopt de linkerkant, maar een bruiloft is een gelegenheid waarbij wit past en niet de betekenis van de kleur."
+  },
+  {
+    "level": 4,
+    "b": "lied",
+    "c": "akte",
+    "options": [
+      { "a": "couplet", "d": "theater" },
+      { "a": "refrein", "d": "acteur" },
+      { "a": "zanger", "d": "opvoering" },
+      { "a": "couplet", "d": "toneelstuk" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is onderdeel en het grotere werk: een couplet is een deel van een lied, een akte een deel van een toneelstuk. Bij 'couplet : theater' klopt de linkerkant, maar een theater is het gebouw en niet het werk waar de akte in zit."
+  },
+  {
+    "level": 4,
+    "b": "verwarmen",
+    "c": "ventilator",
+    "options": [
+      { "a": "kachel", "d": "koelen" },
+      { "a": "hout", "d": "koelen" },
+      { "a": "kachel", "d": "stroom" },
+      { "a": "thermostaat", "d": "airco" }
+    ],
+    "correctIndex": 0,
+    "explanation": "De relatie is apparaat en de functie ervan: een kachel dient om te verwarmen, een ventilator om te koelen. Bij 'hout : koelen' klopt de rechterkant, maar hout is de brandstof en niet het apparaat."
+  },
+  {
+    "level": 4,
+    "b": "file",
+    "c": "droogte",
+    "options": [
+      { "a": "snelweg", "d": "misoogst" },
+      { "a": "ongeluk", "d": "misoogst" },
+      { "a": "vertraging", "d": "dorst" },
+      { "a": "ongeluk", "d": "rivier" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is oorzaak en gevolg: een ongeluk leidt tot een file, droogte leidt tot een misoogst. Bij 'snelweg : misoogst' klopt de rechterkant, maar een snelweg is de plaats waar de file staat en niet de oorzaak."
+  },
+  {
+    "level": 4,
+    "b": "schaarste",
+    "c": "chaos",
+    "options": [
+      { "a": "overvloed", "d": "wanorde" },
+      { "a": "rijkdom", "d": "orde" },
+      { "a": "honger", "d": "regels" },
+      { "a": "overvloed", "d": "orde" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is tegenstelling: overvloed is het tegendeel van schaarste, orde het tegendeel van chaos. Bij 'overvloed : wanorde' klopt de linkerkant, maar wanorde betekent hetzelfde als chaos in plaats van het tegendeel."
+  },
+  {
+    "level": 4,
+    "b": "meten",
+    "c": "kompas",
+    "options": [
+      { "a": "centimeters", "d": "navigeren" },
+      { "a": "liniaal", "d": "navigeren" },
+      { "a": "liniaal", "d": "noorden" },
+      { "a": "potlood", "d": "kaart" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is hulpmiddel en waar je het voor gebruikt: met een liniaal meet je, met een kompas navigeer je. Bij 'centimeters : navigeren' klopt de rechterkant, maar centimeters zijn de eenheid en niet het hulpmiddel."
+  },
+  {
+    "level": 4,
+    "b": "tafel",
+    "c": "wol",
+    "options": [
+      { "a": "hout", "d": "schaap" },
+      { "a": "boom", "d": "trui" },
+      { "a": "timmerman", "d": "breier" },
+      { "a": "hout", "d": "trui" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is grondstof en het voorwerp dat je ervan maakt: van hout maak je een tafel, van wol een trui. Bij 'hout : schaap' klopt de linkerkant, maar een schaap levert de wol en wordt er niet van gemaakt."
+  },
+  {
+    "level": 4,
+    "b": "gereedschap",
+    "c": "viool",
+    "options": [
+      { "a": "zaag", "d": "muziek" },
+      { "a": "spijker", "d": "snaar" },
+      { "a": "zaag", "d": "instrument" },
+      { "a": "timmerman", "d": "instrument" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is voorwerp en de groep waartoe het behoort: een zaag is gereedschap, een viool is een instrument. Bij 'timmerman : instrument' klopt de rechterkant, maar een timmerman gebruikt gereedschap en is het niet."
+  },
+  {
+    "level": 4,
+    "b": "brandweer",
+    "c": "inbraak",
+    "options": [
+      { "a": "brand", "d": "dief" },
+      { "a": "rook", "d": "politie" },
+      { "a": "alarm", "d": "slot" },
+      { "a": "brand", "d": "politie" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is een probleem en de dienst die daarvoor uitrukt: bij brand komt de brandweer, bij inbraak de politie. Bij 'brand : dief' klopt de linkerkant, maar een dief pleegt de inbraak en lost hem niet op."
+  },
+  {
+    "level": 4,
+    "b": "afstand",
+    "c": "kilo",
+    "options": [
+      { "a": "meter", "d": "gewicht" },
+      { "a": "liter", "d": "gewicht" },
+      { "a": "meter", "d": "weegschaal" },
+      { "a": "lang", "d": "zwaar" }
+    ],
+    "correctIndex": 0,
+    "explanation": "De relatie is eenheid en wat je ermee uitdrukt: een meter drukt afstand uit, een kilo gewicht. Bij 'liter : gewicht' klopt de rechterkant, maar een liter meet inhoud en geen afstand."
+  },
+
+  {
+    "level": 5,
+    "b": "gierig",
+    "c": "moedig",
+    "options": [
+      { "a": "zuinig", "d": "dapper" },
+      { "a": "zuinig", "d": "roekeloos" },
+      { "a": "vrijgevig", "d": "roekeloos" },
+      { "a": "spaarpot", "d": "held" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is een goede eigenschap en de doorgeslagen versie ervan: te zuinig wordt gierig, te moedig wordt roekeloos. Bij 'zuinig : dapper' klopt de linkerkant, maar dapper betekent ongeveer hetzelfde als moedig en is geen doorgeslagen vorm."
+  },
+  {
+    "level": 5,
+    "b": "snelheid",
+    "c": "warm",
+    "options": [
+      { "a": "traag", "d": "warmte" },
+      { "a": "auto", "d": "zon" },
+      { "a": "snel", "d": "temperatuur" },
+      { "a": "snel", "d": "warmte" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is een eigenschap en het zelfstandig naamwoord dat erbij hoort: snel wordt snelheid, warm wordt warmte. Bij 'snel : temperatuur' klopt de linkerkant, maar temperatuur is de meetbare grootheid en niet de eigenschap warm."
+  },
+  {
+    "level": 5,
+    "b": "bouwwerk",
+    "c": "schrijven",
+    "options": [
+      { "a": "architect", "d": "tekst" },
+      { "a": "bouwen", "d": "tekst" },
+      { "a": "bouwen", "d": "pen" },
+      { "a": "steen", "d": "lezen" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is handeling en het resultaat ervan: bouwen levert een bouwwerk op, schrijven levert een tekst op. Bij 'architect : tekst' klopt de rechterkant, maar een architect is de persoon en geen handeling."
+  },
+  {
+    "level": 5,
+    "b": "ketting",
+    "c": "baksteen",
+    "options": [
+      { "a": "schakel", "d": "steengroeve" },
+      { "a": "juwelier", "d": "muur" },
+      { "a": "hals", "d": "cement" },
+      { "a": "schakel", "d": "muur" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is bouwsteen en het geheel dat je ermee maakt: van schakels maak je een ketting, van bakstenen een muur. Bij 'schakel : steengroeve' klopt de linkerkant, maar een steengroeve is de plaats van herkomst en geen geheel dat uit bakstenen bestaat."
+  },
+  {
+    "level": 5,
+    "b": "roest",
+    "c": "zonlicht",
+    "options": [
+      { "a": "vocht", "d": "lamp" },
+      { "a": "ijzer", "d": "verkleuring" },
+      { "a": "vocht", "d": "verkleuring" },
+      { "a": "verf", "d": "gordijn" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is oorzaak en het langzame gevolg ervan: vocht veroorzaakt roest, zonlicht veroorzaakt verkleuring. Bij 'ijzer : verkleuring' klopt de rechterkant, maar ijzer is het materiaal dat roest en niet de oorzaak."
+  },
+  {
+    "level": 5,
+    "b": "overtuiging",
+    "c": "interesse",
+    "options": [
+      { "a": "vermoeden", "d": "passie" },
+      { "a": "vermoeden", "d": "nieuwsgierigheid" },
+      { "a": "zekerheid", "d": "passie" },
+      { "a": "bewijs", "d": "hobby" }
+    ],
+    "correctIndex": 0,
+    "explanation": "De relatie is een zwakke vorm en een sterke vorm van hetzelfde: een vermoeden groeit uit tot een overtuiging, interesse tot een passie. Bij 'zekerheid : passie' klopt de rechterkant, maar zekerheid is juist sterker dan een overtuiging."
+  },
+  {
+    "level": 5,
+    "b": "gedrag",
+    "c": "thermostaat",
+    "options": [
+      { "a": "rechter", "d": "temperatuur" },
+      { "a": "wet", "d": "kamer" },
+      { "a": "straf", "d": "kachel" },
+      { "a": "wet", "d": "temperatuur" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is een regelaar en datgene wat hij in toom houdt: een wet regelt gedrag, een thermostaat regelt de temperatuur. Bij 'rechter : temperatuur' klopt de rechterkant, maar een rechter past de wet toe en is zelf niet de regel."
+  },
+  {
+    "level": 5,
+    "b": "rechtvaardigheid",
+    "c": "anker",
+    "options": [
+      { "a": "weegschaal", "d": "schip" },
+      { "a": "rechter", "d": "hoop" },
+      { "a": "weegschaal", "d": "hoop" },
+      { "a": "vonnis", "d": "zee" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is een symbool en het begrip waar het voor staat: de weegschaal staat voor rechtvaardigheid, het anker voor hoop. Bij 'weegschaal : schip' klopt de linkerkant, maar een schip is het voorwerp waar het anker bij hoort en geen begrip."
+  },
+  {
+    "level": 5,
+    "b": "verleden",
+    "c": "geoloog",
+    "options": [
+      { "a": "archief", "d": "gesteente" },
+      { "a": "historicus", "d": "museum" },
+      { "a": "boek", "d": "groeve" },
+      { "a": "historicus", "d": "gesteente" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is onderzoeker en het onderwerp dat hij bestudeert: een historicus bestudeert het verleden, een geoloog gesteente. Bij 'archief : gesteente' klopt de rechterkant, maar een archief is een bewaarplaats en geen onderzoeker."
+  },
+  {
+    "level": 5,
+    "b": "oogst",
+    "c": "studie",
+    "options": [
+      { "a": "zaaien", "d": "school" },
+      { "a": "boer", "d": "diploma" },
+      { "a": "zaaien", "d": "diploma" },
+      { "a": "ploeg", "d": "docent" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is een inspanning vooraf en de opbrengst achteraf: zaaien levert uiteindelijk een oogst op, een studie levert een diploma op. Bij 'zaaien : school' klopt de linkerkant, maar een school is de plaats van de studie en niet de opbrengst."
+  },
+  {
+    "level": 5,
+    "b": "twijfel",
+    "c": "nederlaag",
+    "options": [
+      { "a": "zekerheid", "d": "verlies" },
+      { "a": "onzekerheid", "d": "overwinning" },
+      { "a": "aarzeling", "d": "medaille" },
+      { "a": "zekerheid", "d": "overwinning" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is tegenstelling: zekerheid is het tegendeel van twijfel, een overwinning het tegendeel van een nederlaag. Bij 'zekerheid : verlies' klopt de linkerkant, maar verlies betekent ongeveer hetzelfde als een nederlaag."
+  },
+  {
+    "level": 5,
+    "b": "geluid",
+    "c": "blind",
+    "options": [
+      { "a": "doof", "d": "oog" },
+      { "a": "gehoor", "d": "kleur" },
+      { "a": "doof", "d": "kleur" },
+      { "a": "oor", "d": "licht" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is een beperking en datgene wat je daardoor niet waarneemt: wie doof is neemt geen geluid waar, wie blind is geen kleur. Bij 'doof : oog' klopt de linkerkant, maar een oog is een orgaan en geen waarneming."
+  },
+
+  {
+    "level": 6,
+    "b": "anarchie",
+    "c": "discipline",
+    "options": [
+      { "a": "gezag", "d": "orde" },
+      { "a": "gezag", "d": "chaos" },
+      { "a": "vrijheid", "d": "chaos" },
+      { "a": "leider", "d": "regels" }
+    ],
+    "correctIndex": 1,
+    "explanation": "De relatie is iets dat een toestand juist tegenhoudt: gezag houdt anarchie tegen, discipline houdt chaos tegen. Bij 'gezag : orde' klopt de linkerkant, maar orde is wat discipline oplevert en niet wat zij tegenhoudt."
+  },
+  {
+    "level": 6,
+    "b": "aarzelen",
+    "c": "overmoed",
+    "options": [
+      { "a": "wachten", "d": "opscheppen" },
+      { "a": "twijfel", "d": "trots" },
+      { "a": "kalmte", "d": "bescheidenheid" },
+      { "a": "twijfel", "d": "opscheppen" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is een innerlijke houding en het gedrag dat eruit voortkomt: uit twijfel volgt aarzelen, uit overmoed volgt opscheppen. Bij 'twijfel : trots' klopt de linkerkant, maar trots is weer een houding en geen gedrag."
+  },
+  {
+    "level": 6,
+    "b": "landkaart",
+    "c": "gebouw",
+    "options": [
+      { "a": "gebied", "d": "maquette" },
+      { "a": "gebied", "d": "architect" },
+      { "a": "atlas", "d": "maquette" },
+      { "a": "reiziger", "d": "bouwvakker" }
+    ],
+    "correctIndex": 0,
+    "explanation": "De relatie is de werkelijkheid en de verkleinde weergave ervan: een landkaart geeft een gebied verkleind weer, een maquette een gebouw. Bij 'atlas : maquette' klopt de rechterkant, maar een atlas is een bundel kaarten en niet de werkelijkheid die wordt weergegeven."
+  },
+  {
+    "level": 6,
+    "b": "theorie",
+    "c": "schets",
+    "options": [
+      { "a": "conclusie", "d": "schilderij" },
+      { "a": "hypothese", "d": "potlood" },
+      { "a": "onderzoeker", "d": "lijst" },
+      { "a": "hypothese", "d": "schilderij" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is een voorlopige versie en de uitgewerkte versie: uit een hypothese groeit een theorie, uit een schets een schilderij. Bij 'conclusie : schilderij' klopt de rechterkant, maar een conclusie komt na de theorie en gaat er niet aan vooraf."
+  },
+  {
+    "level": 6,
+    "b": "erosie",
+    "c": "geld",
+    "options": [
+      { "a": "regen", "d": "inflatie" },
+      { "a": "rots", "d": "munt" },
+      { "a": "rots", "d": "inflatie" },
+      { "a": "zand", "d": "bank" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is iets van waarde en het proces dat het langzaam afbreekt: een rots wordt aangetast door erosie, geld door inflatie. Bij 'regen : inflatie' klopt de rechterkant, maar regen veroorzaakt erosie en wordt er zelf niet door aangetast."
+  },
+  {
+    "level": 6,
+    "b": "censuur",
+    "c": "handel",
+    "options": [
+      { "a": "informatie", "d": "winst" },
+      { "a": "haven", "d": "embargo" },
+      { "a": "krant", "d": "markt" },
+      { "a": "informatie", "d": "embargo" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is iets dat vrij zou stromen en de maatregel die het afknijpt: censuur beperkt informatie, een embargo beperkt handel. Bij 'haven : embargo' klopt de rechterkant, maar een haven is een plaats en niet datgene wat door censuur beperkt wordt."
+  },
+  {
+    "level": 6,
+    "b": "ramp",
+    "c": "ergernis",
+    "options": [
+      { "a": "tegenslag", "d": "ruzie" },
+      { "a": "geluk", "d": "woede" },
+      { "a": "hulp", "d": "rust" },
+      { "a": "tegenslag", "d": "woede" }
+    ],
+    "correctIndex": 3,
+    "explanation": "De relatie is een milde vorm en de heftige vorm daarvan: een tegenslag is een kleine ramp, ergernis is milde woede. Bij 'tegenslag : ruzie' klopt de linkerkant, maar een ruzie is een gebeurtenis die uit ergernis kan ontstaan en geen sterkere versie van het gevoel."
+  },
+  {
+    "level": 6,
+    "b": "taal",
+    "c": "psychologie",
+    "options": [
+      { "a": "taalkunde", "d": "psycholoog" },
+      { "a": "woordenboek", "d": "gedrag" },
+      { "a": "taalkunde", "d": "gedrag" },
+      { "a": "spreken", "d": "therapie" }
+    ],
+    "correctIndex": 2,
+    "explanation": "De relatie is een vakgebied en datgene wat het bestudeert: taalkunde bestudeert taal, psychologie bestudeert gedrag. Bij 'taalkunde : psycholoog' klopt de linkerkant, maar een psycholoog is de beoefenaar van het vak en niet het onderwerp."
+  }
+]

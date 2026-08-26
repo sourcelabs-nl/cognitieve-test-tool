@@ -27,6 +27,9 @@ const ALL_FAMILIES: NumericFamily[] = [
   'powers',
   'fibonacci',
   'primes',
+  'opcycle3',
+  'posstep',
+  'thirdorder',
 ];
 
 function isPrime(n: number): boolean {
@@ -82,35 +85,86 @@ function expectedNext(family: NumericFamily, terms: number[]): number {
     return last + d1[0];
   }
 
+  // Bij de verweven families bepaalt de lengte van de rij welke reeks gevraagd
+  // wordt: het vraagteken staat op index `terms.length`, en die index bepaalt
+  // bij welke reeks het getal hoort.
   if (family === 'interwoven') {
+    expect([6, 7]).toContain(terms.length);
     const seriesA = [terms[0], terms[2], terms[4]];
     const stepA = seriesA[1] - seriesA[0];
     expect(seriesA[2] - seriesA[1]).toBe(stepA);
     const seriesB = [terms[1], terms[3], terms[5]];
     const stepB = seriesB[1] - seriesB[0];
     expect(seriesB[2] - seriesB[1]).toBe(stepB);
-    return seriesA[2] + stepA; // het gevraagde getal hoort bij reeks A
+    if (terms.length === 6) return seriesA[2] + stepA;
+    expect(terms[6]).toBe(seriesA[2] + stepA);
+    return seriesB[2] + stepB;
   }
 
   if (family === 'interwoven3') {
     // Drie reeksen door elkaar: elke derde term hoort bij dezelfde reeks.
+    expect([9, 10, 11]).toContain(terms.length);
+    const strandOf = (offset: number): number[] =>
+      terms.filter((_, i) => i % 3 === offset);
     for (let offset = 0; offset < 3; offset++) {
-      const series = [terms[offset], terms[offset + 3], terms[offset + 6]];
-      expect(series[2] - series[1]).toBe(series[1] - series[0]);
+      const series = strandOf(offset);
+      const step = series[1] - series[0];
+      for (const d of diffs(series)) expect(d).toBe(step);
     }
-    const seriesA = [terms[0], terms[3], terms[6]];
-    return seriesA[2] + (seriesA[1] - seriesA[0]); // het gevraagde getal hoort bij reeks A
+    const asked = strandOf(terms.length % 3);
+    return asked[asked.length - 1] + (asked[1] - asked[0]);
   }
 
   if (family === 'interwovengeo') {
     // Reeks A (oneven posities) vermenigvuldigt, reeks B (even posities) telt op.
+    expect([6, 7]).toContain(terms.length);
     const seriesA = [terms[0], terms[2], terms[4]];
     const ratio = seriesA[1] / seriesA[0];
     expect(Number.isInteger(ratio)).toBe(true);
     expect(seriesA[2]).toBe(seriesA[1] * ratio);
     const seriesB = [terms[1], terms[3], terms[5]];
-    expect(seriesB[2] - seriesB[1]).toBe(seriesB[1] - seriesB[0]);
-    return seriesA[2] * ratio;
+    const stepB = seriesB[1] - seriesB[0];
+    expect(seriesB[2] - seriesB[1]).toBe(stepB);
+    if (terms.length === 6) return seriesA[2] * ratio;
+    expect(terms[6]).toBe(seriesA[2] * ratio);
+    return seriesB[2] + stepB;
+  }
+
+  if (family === 'opcycle3') {
+    // Drie bewerkingen met periode 3: de stap van i naar i+1 is dezelfde als
+    // die van i+3 naar i+4. Er mag maar een lezing van die stap kloppen.
+    expect(terms).toHaveLength(7);
+    const readOp = (i: number): ((x: number) => number) => {
+      const diff = terms[i + 1] - terms[i];
+      const addFits = terms[i + 4] - terms[i + 3] === diff;
+      const ratio = terms[i] !== 0 && terms[i + 1] % terms[i] === 0 ? terms[i + 1] / terms[i] : 0;
+      const mulFits = ratio !== 0 && ratio !== 1 && terms[i + 3] * ratio === terms[i + 4];
+      expect(addFits !== mulFits).toBe(true);
+      return addFits ? (x) => x + diff : (x) => x * ratio;
+    };
+    readOp(1);
+    readOp(2);
+    return readOp(0)(terms[6]);
+  }
+
+  if (family === 'posstep') {
+    // De stap naar term n is k x n x n.
+    expect(terms).toHaveLength(5);
+    const k = d1[0];
+    expect(k).toBeGreaterThan(0);
+    d1.forEach((d, i) => expect(d).toBe(k * (i + 1) ** 2));
+    return last + k * 25;
+  }
+
+  if (family === 'thirdorder') {
+    // Pas het derde verschil is constant.
+    expect(terms).toHaveLength(6);
+    const d2 = diffs(d1);
+    const d3 = diffs(d2);
+    expect(d3[0]).not.toBe(0);
+    for (const d of d3) expect(d).toBe(d3[0]);
+    const nextD2 = d2[d2.length - 1] + d3[0];
+    return last + d1[d1.length - 1] + nextD2;
   }
 
   if (family === 'geodiff') {
