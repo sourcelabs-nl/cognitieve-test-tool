@@ -37,6 +37,19 @@ export function setAvatar(id: string, avatar: string): Profile | undefined {
   return profile;
 }
 
+// Wijzigt de voorleesstem van een bestaand profiel. Een lege waarde betekent
+// "automatisch kiezen" en wist het veld, zodat een geimporteerd profiel op een
+// ander apparaat niet blijft hangen op een stem die daar niet bestaat.
+export function setVoice(id: string, voiceURI: string | null): Profile | undefined {
+  const store = loadStore();
+  const profile = store.profiles.find((p) => p.id === id);
+  if (!profile) return undefined;
+  if (voiceURI) profile.voiceURI = voiceURI;
+  else delete profile.voiceURI;
+  saveStore(store);
+  return profile;
+}
+
 export function deleteProfile(id: string): void {
   const store = loadStore();
   store.profiles = store.profiles.filter((p) => p.id !== id);

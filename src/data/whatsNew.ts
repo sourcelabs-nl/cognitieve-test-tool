@@ -5,8 +5,18 @@
 // de app onthoudt welke versie de gebruiker al gezien heeft en toont alleen
 // wat daarna is bijgekomen.
 //
-// Schrijf de punten in gewone taal en vanuit de gebruiker: "je kunt nu ...",
-// niet "de generator ondersteunt nu ...".
+// De lezers zijn geen IT-ers. Schrijf daarom uitsluitend wat er voor hen
+// verandert, in gewone taal en vanuit de gebruiker: "je kunt nu ...", niet "de
+// generator ondersteunt nu ...". Concreet:
+//
+// - Alleen functionele wijzigingen. Een technische verbetering die je in de app
+//   niet merkt, hoort hier niet thuis.
+// - Geen vakjargon (knop, scherm en niveau mogen; raster, reeks en regel alleen
+//   als de gebruiker die woorden zelf in de app ziet staan).
+// - Niet uitleggen hoe iets werkt of hoe het vroeger was. Beschrijf de nieuwe
+//   situatie, kort.
+// - Een punt is een of twee zinnen. Wordt het langer, dan zit er waarschijnlijk
+//   techniek in die eruit kan.
 
 export interface Release {
   version: string;
@@ -16,20 +26,32 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: '1.2.3',
+    date: '2026-08-27',
+    items: [
+      'In de testmodus heeft elke vraag nu een tijdslimiet, net als in de echte test. Je ziet een balk aftellen. Moeilijkere vragen krijgen meer tijd. Bij het oefenen blijft de tijd vrij.',
+      'Haal je een hoger niveau, dan krijg je een korte felicitatie in beeld.',
+      'Woordrelaties zijn prettiger te lezen op een telefoon.',
+      'De voorleesstem klinkt beter. Je kunt zelf een stem kiezen: tik op je avatar linksboven.',
+      'De terugknop van je telefoon werkt nu in de app, en als je de pagina ververst blijf je op hetzelfde scherm. Ververs je tijdens een test, dan blijf je ook in de test.',
+      'Op het categoriescherm staat een knop "Beginscherm" om terug te gaan naar het kiezen van een profiel.',
+    ],
+  },
+  {
     version: '1.2.2',
     date: '2026-08-26',
     items: [
-      'Deze kaart springt nu vanzelf in beeld als er iets nieuws is, ook als je de app opende op een plek waar je eerder gebleven was.',
-      'Je kunt met "Bekijk oudere versies" terugbladeren door alles wat er in eerdere versies is veranderd.',
-      'Onderaan het scherm waar je je profiel kiest staat nu een knop "Wat is nieuw?", zodat je deze lijst altijd terug kunt vinden.',
+      'Is er iets nieuws, dan zie je deze kaart meteen bovenaan in beeld.',
+      'Met "Bekijk oudere versies" lees je terug wat er in eerdere versies is veranderd.',
+      'Onderaan het scherm waar je je profiel kiest staat een knop "Wat is nieuw?", zodat je deze lijst altijd terug kunt vinden.',
     ],
   },
   {
     version: '1.2.1',
     date: '2026-08-26',
     items: [
-      'De knop om verder te gaan staat nu midden in beeld, boven de uitleg, zodat je hem meteen ziet en niet meer hoeft te scrollen na een lang antwoord.',
-      'Heb je hulp gevraagd, dan verdwijnt de hulptekst zodra je hebt geantwoord. De uitleg vertelt vanaf dat moment het hele verhaal.',
+      'De knop om verder te gaan staat nu midden in beeld, zodat je na een antwoord meteen door kunt.',
+      'Heb je hulp gevraagd, dan verdwijnt de hulptekst zodra je hebt geantwoord. De uitleg vertelt vanaf dat moment alles wat je nodig hebt.',
     ],
   },
   {
@@ -37,20 +59,18 @@ export const releases: Release[] = [
     date: '2026-08-26',
     items: [
       'Er zijn drie nieuwe soorten vragen bijgekomen, dezelfde soorten die je in de echte cognitieve capaciteitentest van de politie tegenkomt.',
-      'Cijferpatronen in een raster: getallen staan in vakjes en de regel loopt per rij of per kolom. Een vakje is leeg, dat vul jij in.',
-      '"Welke hoort niet in de rij": een rij cijfers of letters volgt bijna helemaal een regel, en precies een van hen breekt hem. Jij wijst hem aan.',
-      'Dubbele woordrelaties: er ontbreken nu soms twee woorden in plaats van een, en je kiest uit vier woordparen. Er zijn er 40 bijgekomen.',
-      'De reeksen op niveau 5 en 6 zijn zwaarder geworden. Er komen nu ook reeksen voorbij waarin drie bewerkingen elkaar afwisselen, waarin de stap afhangt van de plek in de reeks, en waarin je pas het patroon ziet als je de verschillen van de verschillen bekijkt.',
-      'Bij letterpatronen op het hoogste niveau kun je nu een reeks tegenkomen die je vanaf de achterkant van het alfabet moet tellen.',
-      'Staan er twee of drie reeksen door elkaar, dan hoort het vraagteken niet langer altijd bij de eerste reeks. Je moet dus zelf kijken welke reeks aan de beurt is.',
+      'Cijfers in vakjes: er is een vakje leeg en dat vul jij in.',
+      '"Welke hoort niet in de rij": in een rij cijfers of letters past er precies een niet. Jij wijst hem aan.',
+      'Dubbele woordrelaties: soms ontbreken er twee woorden in plaats van een, en kies je uit vier woordparen. Er zijn er 40 bijgekomen.',
+      'De hoogste niveaus zijn moeilijker geworden en er is meer afwisseling in de opgaven, ook op de lagere niveaus.',
     ],
   },
   {
     version: '1.1.0',
     date: '2026-08-24',
     items: [
-      'Er is een niveau 6 bijgekomen. De opgaven gaan door waar het oude plafond lag: reeksen waarvan de regel uit twee stappen bestaat, drie reeksen door elkaar, en woordrelaties met abstracte verbanden.',
-      'Niveau 5 is zwaarder geworden. Opgaven die vooral om herkennen vroegen (zoals priemgetallen) staan nu op niveau 4.',
+      'Er is een niveau 6 bijgekomen, voor als niveau 5 te makkelijk wordt.',
+      'Niveau 5 is moeilijker geworden.',
       'De woordrelaties zijn uitgebreid met 18 nieuwe, moeilijkere opgaven.',
       'Nieuw op het voortgangsscherm: de knop "Beoordeel mijn voortgang" geeft een korte analyse met je sterke punten, je verbeterpunten en een concrete volgende stap.',
     ],

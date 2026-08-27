@@ -92,6 +92,11 @@ export interface Profile {
   id: string;
   name: string;
   avatar?: string; // id van de gekozen avatar (zie ui/avatars.tsx)
+  // Gekozen voorleesstem (`voiceURI` uit de Web Speech API). Leeg betekent:
+  // automatisch de beste beschikbare stem kiezen. Welke stemmen er zijn hangt
+  // van het apparaat af, dus na een import op een ander toestel kan deze stem
+  // ontbreken; `resolveVoice` valt dan terug op de automatische keuze.
+  voiceURI?: string;
   createdAt: string; // ISO-datum
   history: SessionResult[];
 }

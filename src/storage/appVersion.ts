@@ -4,25 +4,16 @@
 // gebruiker, en het mag niet meeliften op de export/import van voortgang.
 
 import { APP_VERSION, pendingReleases, type Release } from '../data/whatsNew';
-import { loadStore } from './store';
+import { deviceSetting, loadStore } from './store';
 
-const SEEN_VERSION_KEY = 'cognitieve-test-tool:seen-version';
+const setting = deviceSetting('cognitieve-test-tool:seen-version');
 
 export function lastSeenVersion(): string | null {
-  try {
-    return localStorage.getItem(SEEN_VERSION_KEY);
-  } catch {
-    return null;
-  }
+  return setting.read();
 }
 
 export function markVersionSeen(version: string = APP_VERSION): void {
-  try {
-    localStorage.setItem(SEEN_VERSION_KEY, version);
-  } catch {
-    // Zonder localStorage (privacymodus) verschijnt de kaart elke keer opnieuw;
-    // dat is vervelender dan een crash waard is.
-  }
+  setting.write(version);
 }
 
 // De releases die deze gebruiker nog niet heeft gezien.

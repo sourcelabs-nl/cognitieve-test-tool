@@ -42,7 +42,14 @@ Reeksen blijven bewust de hoofdmoot: de nieuwe vormen zijn variatie, geen vervan
 - **Welke hoort niet in de rij** (`numericOddOne`, `letterOddOne`): een rij die bijna helemaal een regel volgt met precies een bedorven term; de opties zijn getoonde termen. Zie "Eenduidigheid bij odd-one-out" hieronder.
 - **Dubbele analogie** (`verbalDouble`): `? : B = C : ?`, kiezen uit vier woordparen. Zwaarder dan de enkele vorm omdat de relatie niet af te lezen is: je moet hem uit de twee gegeven woorden en de kandidaatparen samen afleiden. Eigen bank `data/verbalDouble.json`, geen niveau 1-2.
 
-Buiten scope gebleven, hoewel de politietest ze wel timet: een tijdslimiet per vraag.
+### Tijdsdruk (alleen testmodus)
+
+De echte politietest is tijdgebonden: de instructies mag je rustig lezen, de opgaven niet, en de tijd per vraag loopt mee met de moeilijkheid. `engine/timing.ts` bootst dat na met `timeLimitMs(item)`: een basis van 30 seconden, 8 seconden erbij per niveau, en 10 seconden extra voor de vormen met veel leeswerk (raster, odd-one-out, dubbele analogie). Zonder die laatste toeslag straft de klok het formaat van de opgave in plaats van de moeilijkheid ervan.
+
+- **Alleen in testmodus.** In oefenmodus wil je nadenken, hulp kunnen vragen en de uitleg lezen; tijdsdruk zit dat leren in de weg.
+- Loopt de tijd af, dan telt de vraag als fout (`NO_ANSWER = -1`) en gaat de sessie door. Die index hoort bij geen enkele optie, dus het adaptieve algoritme en de score hoeven er niets van te weten.
+- Het aftellen zit in `ui/TimeBar.tsx` zelf, niet in de sessie: anders hertekende het hele vraagscherm vier keer per seconde. De klok loopt op `performance.now()` en niet op het aantal ticks, want een tab op de achtergrond krijgt er minder.
+- Het introscherm kondigt de limiet aan. Een klok die pas bij de eerste vraag blijkt te lopen, overvalt de gebruiker.
 
 Buiten v1 (architectureel wel mogelijk gehouden): abstracte/figuurreeksen, rekenkundig redeneren, IRT/CAT-kalibratie, backend-sync.
 
@@ -52,6 +59,7 @@ Buiten v1 (architectureel wel mogelijk gehouden): abstracte/figuurreeksen, reken
 - **Vitest** voor unit-tests.
 - Lichte, eigen CSS. Geen zware UI-library.
 - Volledig **client-side**, geen backend. Persistentie via **browser `localStorage`**.
+- De dev-server draait op **poort 5199**, niet op de Vite-standaard 5173: die poort is op deze machine van een andere applicatie. Staat vast in `vite.config.ts` met `strictPort`, dus `npm run dev` faalt zichtbaar als 5199 bezet is in plaats van stilletjes uit te wijken. Gebruik ook bij visuele controles nooit 5173.
 
 ## Architectuur
 
@@ -60,6 +68,7 @@ src/
   engine/
     types.ts        Category, Item, Answer, SessionState, profielen/historie types
     adaptive.ts     staircase: nextEstimate, niveau-mapping, stopcriterium
+    timing.ts       tijdslimiet per vraag (alleen testmodus)
     assessment.ts   beoordeling van de voortgang uit de sessiehistorie
   generators/
     numeric.ts      cijferpatronen-generator (niveau 1..6)
@@ -72,6 +81,7 @@ src/
     whatsNew.ts       changelog voor de gebruiker + APP_VERSION
   state/
     useSession.ts   actieve sessie: schatting, antwoorden, voortgang
+    route.ts        welk scherm en welke modus staan in de URL (hash-routing)
   storage/
     profiles.ts     profielen aanmaken/kiezen/verwijderen (localStorage)
     appVersion.ts   onthoudt welke versie al gezien is ("Wat is nieuw?")
@@ -86,6 +96,11 @@ src/
     AssessmentPanel.tsx  beoordeling: sterke punten, verbeterpunten, volgende stap
     WhatsNew.tsx    kaart met de wijzigingen van een nieuwe versie
     LevelChart.tsx  grafiek van het niveauverloop
+    ItemPrompt.tsx    opgave van een item: vraagtekst, reeks of raster
+    LevelUpToast.tsx  korte felicitatie bij een hoger niveau
+    TimeBar.tsx       aflopende tijdbalk per vraag (testmodus)
+    VoicePicker.tsx   keuze van de voorleesstem (in het profielpaneel)
+    speech.ts         tekst-naar-spraak: stemkeuze, voorlezen, raster uitspreken
   App.tsx
   main.tsx
   __tests__/        numeric, letters, adaptive (Vitest)
@@ -255,9 +270,50 @@ De app is een installeerbare PWA via `vite-plugin-pwa` (zie `vite.config.ts`):
 - Installeren werkt alleen via `https` (of `localhost`). Host de `dist/`-output op een statische https-host en kies op de telefoon "Zet op beginscherm".
 - Icons opnieuw genereren na het wijzigen van `public/icon.svg`: `npx pwa-assets-generator --preset minimal-2023 public/icon.svg`.
 
+## Navigatie: het scherm staat in de URL
+
+`state/route.ts` vertaalt tussen de URL en het scherm. **Hash-routing**, want de app draait als PWA onder een subpad op GitHub Pages en dan werkt diep linken zonder serverconfiguratie. Categorieen staan met hun Nederlandse naam in de URL: die is voor de gebruiker, niet voor de code.
+
+```
+#/profiel
+#/kiezen
+#/start/<categorie>            intro, oefenmodus
+#/start/<categorie>/test       intro, testmodus
+#/sessie/<categorie>           lopende sessie, oefenmodus
+#/sessie/<categorie>/test      lopende sessie, testmodus
+#/resultaat
+#/voortgang
+#/ranglijst
+```
+
+- **De modus staat in de URL**, naast de categorie. Zonder dat werd een herlaad midden in een test stilletjes een oefensessie: hulp beschikbaar, geen tijdslimiet, en geen melding daarvan. `App.tsx` leidt de modus daarom uit de route af en houdt er geen eigen state meer voor bij.
+- **Oefenen krijgt bewust geen eigen segment.** Dat is de modus waarin de meeste mensen zitten en een korte URL is prettiger; alleen de test wijkt af en zegt dat dan ook. De lopende sessie heet `sessie` en niet `oefenen`, want die route draagt beide modi en `#/oefenen/<cat>/test` spreekt zichzelf tegen.
+- `parseHash` blijft streng: een onbekend derde segment (`#/start/cijferpatronen/onzin`) is net zo ongeldig als een onbekende categorie en valt terug op `#/profiel`. Liever het profielscherm dan iemand in de verkeerde modus zetten.
+
+- De pure functies (`buildHash`, `parseHash`, `resolveRoute`) staan los van de browserkoppeling (`useHash`, `navigate`, `replaceHash`), zodat ze zonder DOM te testen zijn.
+- **Het profiel staat bewust niet in de URL.** Een profiel-id in de adresbalk is een deelbare link naar andermans voortgang, en profielen zijn hier niet met een wachtwoord gescheiden. Het laatst gekozen profiel wordt lokaal onthouden (eigen `localStorage`-sleutel, net als de geziene versie), anders zou elke herlaad alsnog op het profielscherm eindigen. Een verse start zonder hash blijft op `#/profiel`: op een gedeeld apparaat zeg je eerst wie je bent.
+- **Niet elk scherm is herstelbaar.** De opgaven worden procedureel gegenereerd, dus een lopende sessie overleeft een herlaad niet. `#/sessie/<cat>` valt daarom terug op `#/start/<cat>` en `#/resultaat` zonder resultaat op `#/kiezen`. De terugval houdt de modus vast: `#/sessie/<cat>/test` komt uit op `#/start/<cat>/test`, niet op de oefenvariant. Dat een sessie zelf bewaard blijft is bewust buiten scope gehouden.
+- Gebruikersnavigatie gebruikt `navigate` (nieuwe geschiedenis-entry, dus de terugknop werkt); terugval-redirects gebruiken `location.replace`, anders ontstaat een lus waarin terug niets doet.
+
+## Voorlezen
+
+`ui/speech.ts` kiest **actief** een stem. Zonder dat krijg je de standaardstem van het besturingssysteem, en dat is meestal de oudste en meest robotachtige die er is.
+
+- De Web Speech API heeft geen kwaliteitsveld, dus de rangschikking leidt kwaliteit af uit de naam. "Google Nederlands" staat bovenaan **op expliciet verzoek van de opdrachtgever**, niet op basis van een meting; niet "corrigeren" naar Premium/Enhanced. Die blijven de terugval op Apple-toestellen, waar de Google-stem niet bestaat.
+- Bewust **niet** gefilterd op `localService`: dat is geen kwaliteitsvlag, en juist de remote Google-stem klinkt op Chrome beter. Kanttekening: bij een remote stem gaat de voorgelezen tekst naar de leverancier. Acceptabel omdat het om oefenopgaven gaat, niet om persoonsgegevens.
+- `getVoices()` is bij de eerste aanroep vaak leeg (de lijst komt asynchroon, op iOS pas na een interactie). Daarom een cache met een `voiceschanged`-listener en een abonnement voor de UI.
+- De stem hoort **bij het profiel** (`Profile.voiceURI`): twee mensen op hetzelfde toestel mogen een andere stem willen. Bestaat die stem na een import op een ander apparaat niet, dan valt `resolveVoice` terug op de automatische keuze.
+- `App.tsx` geeft de stem van het actieve profiel eenmalig door met `setActiveVoice`. Bewust geen prop: de voorleesknop staat op een stuk of tien plekken en die zouden allemaal een stem moeten doorgeven zonder er iets mee te doen.
+
 ## Versie en "Wat is nieuw?"
 
-`data/whatsNew.ts` is de changelog voor de gebruiker. De nieuwste release staat bovenaan en bepaalt tegelijk `APP_VERSION`; bij elke inhoudelijke wijziging komt daar een blok bovenop, in gewone taal en vanuit de gebruiker geschreven ("je kunt nu ...", niet "de generator ondersteunt nu ...").
+`data/whatsNew.ts` is de changelog voor de gebruiker. De nieuwste release staat bovenaan en bepaalt tegelijk `APP_VERSION`; bij elke inhoudelijke wijziging komt daar een blok bovenop.
+
+**De lezers zijn geen IT-ers.** Schrijf uitsluitend wat er voor hen verandert, in gewone taal en vanuit de gebruiker ("je kunt nu ...", niet "de generator ondersteunt nu ..."):
+- Alleen functionele wijzigingen. Een technische verbetering die je in de app niet merkt, hoort er niet in.
+- Geen vakjargon. Knop, scherm en niveau mogen; woorden als raster, reeks of regel alleen als de gebruiker ze zelf in de app ziet staan.
+- Niet uitleggen hoe iets werkt of hoe het vroeger was. Beschrijf kort de nieuwe situatie.
+- Een punt is een of twee zinnen. Wordt het langer, dan zit er waarschijnlijk techniek in die eruit kan.
 
 Bij het laden toont de app eenmalig een kaart met alles wat na de laatst geziene versie is bijgekomen. De geziene versie staat in een eigen `localStorage`-sleutel (`storage/appVersion.ts`), bewust los van de profielen: het hoort bij het apparaat, niet bij de gebruiker, en mag niet meeliften op de export/import van voortgang. Regels:
 - Iemand die de app voor het eerst opent (geen profielen, geen geziene versie) krijgt geen changelog te zien.

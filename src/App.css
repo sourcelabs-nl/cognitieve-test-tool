@@ -247,20 +247,28 @@ button {
   gap: 8px;
 }
 
-.new-profile input {
-  flex: 1;
+/* Invoervelden en keuzelijsten zien er hetzelfde uit; een gedeelde regel houdt
+   dat zo. */
+.new-profile input,
+.voice-picker select {
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 10px;
+  background: var(--surface);
   font: inherit;
+  color: inherit;
 }
 
+.new-profile input {
+  flex: 1;
+}
+
+/* Wordt samen met `.footer-actions` gebruikt: dat levert de gecentreerde,
+   afbrekende knoppenrij. Hier alleen de scheidingslijn die de sectie afsluit. */
 .transfer {
-  display: flex;
-  gap: 16px;
-  margin-top: 24px;
   border-top: 1px solid var(--border);
   padding-top: 16px;
+  gap: 12px; /* iets krapper dan de standaard: hier staan drie knoppen */
 }
 
 /* Modus en categorieen */
@@ -341,6 +349,65 @@ button {
   margin: 6px 0 0;
 }
 
+/* Aankondiging van de tijdslimiet op het introscherm. */
+.intro-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.intro-note svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Tijdbalk (alleen testmodus). Bewust dikker en van kleur wisselend, zodat hij
+   niet te verwarren is met de voortgangsbalk erboven: die zegt hoe ver je bent,
+   deze hoeveel tijd je nog hebt. Geen tekst erbij; de lengte en de kleur zeggen
+   het al, en een aftellend getal leidt af van de opgave. */
+.time-bar {
+  height: 10px;
+  /* Zelfde plek als de voortgangsbalk waar hij voor in de plaats komt. */
+  margin-top: 8px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.time-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  /* Even lang als de tick, anders springt de balk met horten en stoten. De
+     kleur verloopt wat trager, zodat de overgang niet als een flits aanvoelt. */
+  transition: width 200ms linear, background-color 600ms ease;
+}
+
+/* Groen zolang je ruim zit, daarna geel, oranje en rood. Op het aandeel
+   resterende tijd, niet op een vast aantal seconden: de limiet loopt van 30 tot
+   80 seconden, dus tien seconden betekent per vraag iets anders. */
+.time-bar-ruim .time-bar-fill {
+  background: var(--good);
+}
+
+.time-bar-halverwege .time-bar-fill {
+  background: #eab308;
+}
+
+.time-bar-krap .time-bar-fill {
+  background: #f97316;
+}
+
+.time-bar-bijna-om .time-bar-fill {
+  background: var(--bad);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-bar-fill {
+    transition: none;
+  }
+}
+
 .prompt {
   position: relative;
   margin: 24px 0;
@@ -364,6 +431,15 @@ button {
   margin-top: 12px;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+/* Woordrelaties zijn tekst, geen reeks. De ruime letterafstand die losse cijfers
+   en letters scanbaar maakt, kost bij een woord van twintig tekens veertig pixels
+   aan lucht. Daardoor werd een lange helft breder dan het promptblok en brak de
+   browser hem middenin een woord af ("tempe / ratuur"). */
+.prompt-sequence-words {
+  font-size: clamp(18px, 5.2vw, 26px);
+  letter-spacing: normal;
 }
 
 /* Matrix-opgave: vakjes met getallen waarvan er precies een leeg is. Het raster
@@ -404,6 +480,13 @@ button {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+/* Dubbele analogieen: de opties zijn woordparen ("boer : school"). Naast elkaar
+   breken die halverwege af en staat het tweede woord op een eigen regel, wat de
+   twee helften van het paar visueel uit elkaar trekt. */
+.options-stacked {
+  grid-template-columns: 1fr;
 }
 
 .option {
@@ -515,12 +598,18 @@ button {
   box-shadow: var(--shadow);
 }
 
-/* Doorgaan-knop: gecentreerd zoals alle schermacties, en boven de uitleg zodat
-   hij ook bij een lange uitleg binnen het scherm valt. */
+/* Doorgaan-knop: gecentreerd zoals alle schermacties, en boven de uitleg-kaart
+   zodat hij ook bij een lange uitleg binnen het scherm valt en niet leest als
+   onderdeel van de uitleg. */
 .feedback-actions {
   display: flex;
   justify-content: center;
-  margin: 14px 0;
+  margin-top: 20px;
+}
+
+/* De kaart volgt direct op de knop, dus daar hoeft geen dubbele ruimte tussen. */
+.feedback-actions + .feedback {
+  margin-top: 14px;
 }
 
 .feedback-explanation {
@@ -788,22 +877,50 @@ button {
 }
 
 .leaderboard .rank {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   font-weight: 700;
   color: var(--text-h);
 }
 
+/* Medaillekleuren voor de eerste drie plaatsen. */
+.rank-1 {
+  color: #d4a017;
+}
+
+.rank-2 {
+  color: #94a3b8;
+}
+
+.rank-3 {
+  color: #b45309;
+}
+
+/* `min-width: 0` is hier de kern: een flex-item krimpt standaard niet onder de
+   breedte van zijn inhoud, dus een lange naam duwde de score voorbij de rand van
+   de kaart en zelfs voorbij de rand van het scherm. Dan zag je op de ranglijst
+   wel je naam maar niet je punten. De naam mag nu afbreken; de score houdt zijn
+   plek, want dat is waar dit scherm voor bestaat. */
 .leaderboard .lb-name {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: 600;
   color: var(--text-h);
 }
 
 .leaderboard .lb-cat {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 13px;
 }
 
 .leaderboard .lb-score {
+  flex: 0 0 auto;
   font-weight: 700;
   color: var(--accent);
 }
@@ -871,36 +988,80 @@ button {
 }
 
 /* Tussentijdse niveau-melding */
-.levelup-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 12px 0;
-  padding: 10px 14px;
-  font-weight: 700;
-  color: var(--good);
-  background: var(--good-soft);
-  border: 1px solid #bbf7d0;
-  border-radius: 12px;
-}
+/* Niveau-melding: zweeft kort bovenaan in plaats van de vraag omlaag te duwen.
+   Vangt geen tikken op, zodat hij niets blokkeert zolang hij in beeld staat. */
+/* Zwevende melding. Twee soorten gebruiken dit: de niveau-felicitatie bovenaan
+   en de PWA-updatemelding onderaan.
 
-/* PWA-update melding */
-.pwa-toast {
+   Centreren met left/right plus auto-marges, niet met left:50% en translateX.
+   Een fixed element zonder breedte krimpt bij die tweede techniek tot de ruimte
+   rechts van die 50%, dus tot de halve schermbreedte, en dan wikkelt de tekst
+   over meerdere regels. Die valkuil is een keer echt toegeslagen; vandaar dat
+   beide meldingen nu dezelfde techniek delen. */
+.toast {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 16px;
+  right: 16px;
+  margin-inline: auto;
+  width: max-content;
+  max-width: calc(100% - 32px);
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 12px;
-  max-width: calc(100% - 24px);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  gap: 10px;
+  padding: 10px 16px;
   border-radius: 12px;
   box-shadow: var(--shadow);
-  padding: 12px 14px;
+}
+
+/* Het icoon mag niet meekrimpen als de tekst de ruimte opeist. */
+.toast svg {
+  flex-shrink: 0;
+}
+
+.toast-top {
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+}
+
+.toast-bottom {
+  bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Niveau-felicitatie: pilvorm, en vangt geen tikken op zodat hij niets blokkeert
+   in de seconden dat hij in beeld staat. */
+.levelup-toast {
+  border-radius: 999px;
+  font-size: 15px;
+  color: var(--good);
+  background: var(--good-soft);
+  border: 1px solid #bbf7d0;
+  pointer-events: none;
+  animation: levelup-in 220ms ease-out;
+}
+
+@keyframes levelup-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .levelup-toast {
+    animation: none;
+  }
+}
+
+/* PWA-update melding */
+/* PWA-updatemelding: wel aanklikbaar, want er zitten knoppen in. */
+.pwa-toast {
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
 }
 
 /* "Wat is nieuw?"-kaart bij een nieuwe versie */
@@ -1028,7 +1189,29 @@ button {
     flex-direction: column;
   }
 
-  .transfer {
-    flex-wrap: wrap;
-  }
+}
+
+/* De stemkiezer staat in het profielpaneel, dat zijn onderdelen al groepeert met
+   een eigen kader en tussenruimte. Een eigen scheidingslijn zou dubbelop zijn. */
+.voice-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.voice-picker label {
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.voice-picker select {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* In het smalle paneel staat de knop links uitgelijnd, net als "Wissel van
+   profiel" eronder. Een gecentreerde knop naast een linkse leest rommelig. */
+.voice-picker .footer-actions {
+  margin-top: 0;
+  justify-content: flex-start;
 }

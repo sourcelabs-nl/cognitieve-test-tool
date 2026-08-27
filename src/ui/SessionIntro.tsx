@@ -5,14 +5,15 @@
 // Daarna begint de echte sessie.
 
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Info, Play } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Hourglass, Info, Play } from 'lucide-react';
 import type { Category, Mode } from '../engine/types';
 import { categoryLabels, generate } from '../generators';
 import { levelForEstimate } from '../engine/adaptive';
 import { levelLabel } from '../engine/levels';
 import { LevelExplanation } from './LevelInfo';
+import { ItemPrompt, layoutFor } from './ItemPrompt';
 import { SpeakButton } from './SpeakButton';
-import { toSpoken } from './speech';
+import { gridToSpoken, toSpoken } from './speech';
 
 interface Props {
   category: Category;
@@ -56,6 +57,16 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
           </span>
         </div>
 
+        {/* In testmodus loopt er een klok. Dat hoor je van tevoren te weten, niet
+            pas als de balk bij de eerste vraag begint te lopen. */}
+        {mode === 'test' && (
+          <p className="muted intro-note">
+            <Hourglass size={16} /> Elke vraag heeft een tijdslimiet, net als in de echte test.
+            Moeilijkere vragen krijgen meer tijd. Loopt de tijd af, dan gaat de test door naar de
+            volgende vraag.
+          </p>
+        )}
+
         <div className="footer-actions">
           <button className="btn" onClick={() => setInfoOpen((v) => !v)} aria-expanded={infoOpen}>
             <Info size={18} /> Hoe werkt mijn niveau?
@@ -90,19 +101,34 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
 
       <div className="prompt">
         <div className="prompt-top">
-          <SpeakButton text={toSpoken(example.prompt)} label="Lees de vraag voor" />
+          <SpeakButton
+            text={
+              example.grid
+                ? `${toSpoken(example.prompt)} ${gridToSpoken(example.grid)}`
+                : toSpoken(example.prompt)
+            }
+            label="Lees de vraag voor"
+          />
         </div>
-        {example.prompt.split('\n').map((line, i) => (
-          <p key={i} className={i === 0 ? 'prompt-text' : 'prompt-sequence'}>{line}</p>
-        ))}
+        <ItemPrompt item={example} />
       </div>
 
-      <div className="options">
+      <div className={layoutFor(example.form).options}>
         {example.options.map((opt, i) => (
           <button key={i} className={optionClass(i)} onClick={() => setChosen(i)} disabled={chosen !== null}>
             {opt}
           </button>
         ))}
+      </div>
+
+      {/* Net als op het vraagscherm staat de knop die verder gaat boven de
+          uitleg-kaart, niet eronder: bij een lange uitleg valt hij anders buiten
+          het scherm, en de plek van de knop hoort niet te verspringen zodra er
+          feedback verschijnt. */}
+      <div className="footer-actions">
+        <button className="primary" onClick={onStart}>
+          <Play size={18} /> {mode === 'practice' ? 'Start de oefening' : 'Start de test'}
+        </button>
       </div>
 
       {chosen !== null && (
@@ -111,15 +137,9 @@ export function SessionIntro({ category, mode, startEstimate, isReturning, onSta
             <p className="feedback-title">{chosen === example.correctIndex ? 'Goed!' : 'Net niet.'}</p>
             <SpeakButton text={example.explanation} label="Lees de uitleg voor" />
           </div>
-          <p>{example.explanation}</p>
+          <p className="feedback-explanation">{example.explanation}</p>
         </div>
       )}
-
-      <div className="footer-actions">
-        <button className="primary" onClick={onStart}>
-          <Play size={18} /> {mode === 'practice' ? 'Start de oefening' : 'Start de test'}
-        </button>
-      </div>
     </section>
   );
 }

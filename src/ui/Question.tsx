@@ -2,11 +2,13 @@
 // spelscore en combo bij. In oefenmodus volgt directe feedback met uitleg; in
 // testmodus gaat het meteen door. Halverwege verschijnt een motiverend feit.
 
-import { Flame, Lightbulb, TrendingUp, X } from 'lucide-react';
-import type { CSSProperties } from 'react';
+import { Flame, Lightbulb, X } from 'lucide-react';
 import type { Category, Mode, SessionResult } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { useSession } from '../state/useSession';
+import { ItemPrompt, layoutFor } from './ItemPrompt';
+import { LevelUpToast } from './LevelUpToast';
+import { TimeBar } from './TimeBar';
 import { SpeakButton } from './SpeakButton';
 import { gridToSpoken, toSpoken } from './speech';
 
@@ -19,7 +21,7 @@ interface Props {
 }
 
 export function Question({ category, mode, startEstimate, onComplete, onQuit }: Props) {
-  const { item, feedback, tip, score, streak, levelUp, itemNumber, totalItems, hintLevel, hintsLeft, revealHint, submitAnswer, proceed, dismissTip, isLastQuestion } =
+  const { item, feedback, tip, score, streak, levelUp, itemNumber, totalItems, hintLevel, hintsLeft, revealHint, submitAnswer, proceed, dismissTip, dismissLevelUp, timeExpired, timeLimit, timedOut, proceedAfterTimeout, isLastQuestion } =
     useSession({ category, mode, startEstimate, onComplete });
 
   // Hulp hoort bij oefenen. In testmodus is er bewust geen tussentijdse
@@ -73,53 +75,35 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
         )}
       </div>
 
-      <div className="progress-bar" aria-hidden>
-        <div className="progress-fill" style={{ width: `${progress}%` }} />
-      </div>
-      <p className="muted progress-text">Vraag {itemNumber} van {totalItems}</p>
-
-      {levelUp && (
-        <div className="levelup-banner" role="status">
-          <TrendingUp size={18} /> Oefenniveau {levelUp} bereikt!
+      {/* Een balk, nooit twee. In testmodus telt de balk de tijd af en zegt de
+          tekst eronder hoe ver je bent; in oefenmodus is er geen klok en toont
+          de balk juist de voortgang. Twee balken onder elkaar zouden om
+          aandacht vechten terwijl ze iets heel anders betekenen. */}
+      {timeLimit !== null ? (
+        <TimeBar limitMs={timeLimit} itemId={item.id} onExpire={timeExpired} />
+      ) : (
+        <div className="progress-bar" aria-hidden>
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
         </div>
       )}
+      <p className="muted progress-text">Vraag {itemNumber} van {totalItems}</p>
+
+      {levelUp && <LevelUpToast level={levelUp} onDone={dismissLevelUp} />}
 
       <div className="prompt">
         <div className="prompt-top">
           <SpeakButton text={spokenQuestion} label="Lees de vraag voor" />
         </div>
-        {item.prompt.split('\n').map((line, i) => (
-          <p key={i} className={i === 0 ? 'prompt-text' : 'prompt-sequence'}>{line}</p>
-        ))}
-        {item.grid && (
-          // Bewust een div-grid en geen <table>: het raster is een plaatje van de
-          // opgave, geen gegevenstabel om doorheen te navigeren. Een label plus de
-          // cellen in leesvolgorde vertelt alles wat nodig is; rij- en kolomkoppen
-          // die een tabel verwacht zijn er niet.
-          <div
-            className="prompt-grid"
-            role="group"
-            aria-label="Raster met getallen"
-            style={{ '--cols': item.grid.cols } as CSSProperties}
-          >
-            {item.grid.cells.map((cell, i) =>
-              cell === '?' ? (
-                <span key={i} className="grid-cell grid-cell-missing" aria-label="gevraagd vakje">?</span>
-              ) : (
-                <span key={i} className="grid-cell">{cell}</span>
-              ),
-            )}
-          </div>
-        )}
+        <ItemPrompt item={item} />
       </div>
 
-      <div className="options">
+      <div className={layoutFor(item.form).options}>
         {item.options.map((opt, i) => (
           <button
             key={i}
             className={optionClass(i)}
             onClick={() => submitAnswer(i)}
-            disabled={feedback !== null}
+            disabled={feedback !== null || timedOut}
           >
             {opt}
           </button>
@@ -158,27 +142,49 @@ export function Question({ category, mode, startEstimate, onComplete, onQuit }: 
         </div>
       )}
 
-      {feedback && (
-        <div className={`feedback ${feedback.correct ? 'good' : 'bad'}`}>
-          <div className="feedback-head">
-            <p className="feedback-title">
-              {feedback.correct
-                ? `Goed! +${feedback.pointsEarned} punten${feedback.hintUsed ? ' (halve punten, met hulp)' : ''}`
-                : 'Helaas, niet juist.'}
-            </p>
-            <SpeakButton text={feedback.explanation} label="Lees de uitleg voor" />
+      {/* Tijd om. Testmodus verklapt geen antwoorden, dus dit meldt alleen wat er
+          gebeurd is en laat de gebruiker zelf verdergaan. */}
+      {timedOut && (
+        <>
+          <div className="feedback-actions">
+            <button className="primary" onClick={proceedAfterTimeout} autoFocus>
+              {isLastQuestion ? 'Bekijk resultaat' : 'Volgende vraag'}
+            </button>
           </div>
-          {/* De knop staat bewust boven de uitleg, ongeveer op de plek waar
-              tijdens het nadenken de hulpknop stond. Onder een lange uitleg
-              viel hij buiten het scherm, waardoor je eerst moest scrollen om
-              verder te kunnen. */}
+
+          <div className="feedback bad">
+            <p className="feedback-title">De tijd is om.</p>
+            <p className="feedback-explanation">
+              Deze vraag telt als fout. In de echte test werkt het net zo.
+            </p>
+          </div>
+        </>
+      )}
+
+      {feedback && (
+        <>
+          {/* De knop staat bewust boven de uitleg-kaart, op de plek waar tijdens
+              het nadenken de hulpknop stond. Binnen de kaart viel hij bij een
+              lange uitleg buiten het scherm, en tussen de tekst in leest hij als
+              onderdeel van de uitleg in plaats van als de actie die verder gaat. */}
           <div className="feedback-actions">
             <button className="primary" onClick={proceed} autoFocus>
               {isLastQuestion ? 'Bekijk resultaat' : 'Volgende vraag'}
             </button>
           </div>
-          <p className="feedback-explanation">{feedback.explanation}</p>
-        </div>
+
+          <div className={`feedback ${feedback.correct ? 'good' : 'bad'}`}>
+            <div className="feedback-head">
+              <p className="feedback-title">
+                {feedback.correct
+                  ? `Goed! +${feedback.pointsEarned} punten${feedback.hintUsed ? ' (halve punten, met hulp)' : ''}`
+                  : 'Helaas, niet juist.'}
+              </p>
+              <SpeakButton text={feedback.explanation} label="Lees de uitleg voor" />
+            </div>
+            <p className="feedback-explanation">{feedback.explanation}</p>
+          </div>
+        </>
       )}
     </section>
   );

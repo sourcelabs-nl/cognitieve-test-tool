@@ -14,6 +14,7 @@ import {
   MAX_ITEMS,
 } from '../engine/adaptive';
 import { scoreAnswer } from '../engine/scoring';
+import { NO_ANSWER, timeLimitMs } from '../engine/timing';
 import { generate } from '../generators';
 import { makeId } from '../storage/store';
 import { randomFact, type Fact } from '../data/facts';
@@ -51,6 +52,9 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [levelUp, setLevelUp] = useState<number | null>(null);
+  // Testmodus: de tijd is om en de sessie wacht op een klik. Zonder deze pauze
+  // verdwijnt de vraag zonder dat de gebruiker weet wat er gebeurde.
+  const [timedOut, setTimedOut] = useState(false);
   // Hoeveel tredes hulp er voor het huidige item zijn opgevraagd: 0 = geen,
   // 1 = de aanpak, 2 = ook de eerste concrete denkstap.
   const [hintLevel, setHintLevel] = useState(0);
@@ -112,7 +116,7 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
 
   const submitAnswer = useCallback(
     (chosenIndex: number) => {
-      if (feedback || tip) return; // wacht op proceed of het wegklikken van een feit
+      if (feedback || tip || timedOut) return; // wacht op een klik van de gebruiker
       const responseMs = Math.round(performance.now() - startTime.current);
       const correct = chosenIndex === item.correctIndex;
       const nextState = applyAnswer(session, { item, chosenIndex, responseMs });
@@ -154,9 +158,16 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
         return;
       }
 
+      // Testmodus geeft geen feedback per vraag, maar een verlopen vraag is geen
+      // feedback: dat is een gebeurtenis die je gemist zou hebben.
+      if (chosenIndex === NO_ANSWER) {
+        setTimedOut(true);
+        return;
+      }
+
       advance(nextState, newScore);
     },
-    [feedback, tip, session, item, mode, streak, score, hintLevel, advance],
+    [feedback, tip, timedOut, session, item, mode, streak, score, hintLevel, advance],
   );
 
   // Oefenmodus: na het lezen van de feedback verder.
@@ -166,6 +177,24 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
     advance(session, score);
   }, [feedback, session, score, advance]);
 
+  // De tijd is om: telt als een fout antwoord. Alleen in testmodus, want daar
+  // hangt de klok.
+  const timeExpired = useCallback(() => {
+    if (feedback || tip || timedOut) return;
+    submitAnswer(NO_ANSWER);
+  }, [feedback, tip, timedOut, submitAnswer]);
+
+  // Na een verlopen vraag verder. Het antwoord is al verwerkt; hier wordt alleen
+  // de pauze opgeheven.
+  const proceedAfterTimeout = useCallback(() => {
+    if (!timedOut) return;
+    setTimedOut(false);
+    advance(session, score);
+  }, [timedOut, session, score, advance]);
+
+  // De niveau-melding verdwijnt vanzelf; de pop-up meldt zich hier af.
+  const dismissLevelUp = useCallback(() => setLevelUp(null), []);
+
   // Het motiverende feit wegklikken en doorgaan.
   const dismissTip = useCallback(() => {
     if (!tip) return;
@@ -173,9 +202,12 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
     generateNext(session);
   }, [tip, session, generateNext]);
 
+  // Het antwoord is al geteld zodra er feedback staat of de tijd om is, maar de
+  // gebruiker kijkt dan nog naar diezelfde vraag. De teller mag dus pas
+  // doorlopen als hij verdergaat.
   const itemNumber = useMemo(
-    () => Math.min(session.answers.length + (feedback ? 0 : 1), MAX_ITEMS),
-    [session.answers.length, feedback],
+    () => Math.min(session.answers.length + (feedback || timedOut ? 0 : 1), MAX_ITEMS),
+    [session.answers.length, feedback, timedOut],
   );
 
   return {
@@ -194,6 +226,12 @@ export function useSession({ category, mode, startEstimate = INITIAL_ESTIMATE, o
     submitAnswer,
     proceed,
     dismissTip,
+    dismissLevelUp,
+    timeExpired,
+    timedOut,
+    proceedAfterTimeout,
+    // Alleen in testmodus hangt er een klok; in oefenmodus is dit null.
+    timeLimit: mode === 'test' ? timeLimitMs(item) : null,
     isLastQuestion: session.finished,
   };
 }

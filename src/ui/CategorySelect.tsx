@@ -1,11 +1,12 @@
 // Keuzescherm: categorie en modus (oefenen met feedback, of test zonder).
 
 import { useState } from 'react';
-import { BarChart3, Pencil, RefreshCw, Trophy } from 'lucide-react';
+import { BarChart3, Home, Pencil, RefreshCw, Trophy } from 'lucide-react';
 import type { Category, Mode, Profile } from '../engine/types';
 import { categoryLabels } from '../generators';
 import { Avatar, AvatarPicker } from './avatars';
 import { AVATARS } from './avatarData';
+import { VoicePicker } from './VoicePicker';
 
 interface Props {
   profile: Profile;
@@ -13,6 +14,7 @@ interface Props {
   onShowProgress: () => void;
   onShowLeaderboard: () => void;
   onChangeAvatar: (avatarId: string) => void;
+  onChangeVoice: (voiceURI: string | null) => void;
   onSwitchProfile: () => void;
 }
 
@@ -29,6 +31,7 @@ export function CategorySelect({
   onShowProgress,
   onShowLeaderboard,
   onChangeAvatar,
+  onChangeVoice,
   onSwitchProfile,
 }: Props) {
   const [mode, setMode] = useState<Mode>('practice');
@@ -56,6 +59,9 @@ export function CategorySelect({
         <div className="profile-panel">
           <p className="muted">Kies je avatar</p>
           <AvatarPicker value={profile.avatar ?? AVATARS[0].id} onChange={onChangeAvatar} />
+          {/* De stemkeuze hoort bij de persoon, niet bij het apparaat: twee
+              mensen op dezelfde telefoon mogen een andere stem willen. */}
+          <VoicePicker value={profile.voiceURI ?? null} onChange={onChangeVoice} />
           <button className="btn" onClick={onSwitchProfile}>
             <RefreshCw size={18} /> Wissel van profiel
           </button>
@@ -90,6 +96,11 @@ export function CategorySelect({
         </button>
         <button className="btn" onClick={onShowLeaderboard}>
           <Trophy size={18} /> Ranglijst
+        </button>
+        {/* Terug naar het profielscherm. Diezelfde stap zit ook achter de
+            avatar, maar die is niet te vinden als je hem niet kent. */}
+        <button className="btn" onClick={onSwitchProfile}>
+          <Home size={18} /> Beginscherm
         </button>
       </div>
     </section>

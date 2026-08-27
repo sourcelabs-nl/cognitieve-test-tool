@@ -31,6 +31,39 @@ export function saveStore(data: StoreData): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+// Een losse instelling van dit APPARAAT, buiten de profielen om. Denk aan de
+// laatst geziene versie of het laatst gekozen profiel: dat hoort bij het toestel
+// en mag niet meeliften op de export/import van voortgang.
+//
+// Alle drie de gebruikers hiervan hadden hun eigen kopie van dezelfde try/catch,
+// tot op de comment na. Die vangt de privacymodus af, waarin localStorage gooit:
+// de instelling geldt dan alleen deze sessie, en dat is vervelender dan een
+// crash waard is.
+export interface DeviceSetting {
+  read(): string | null;
+  write(value: string | null): void; // null wist de instelling
+}
+
+export function deviceSetting(key: string): DeviceSetting {
+  return {
+    read() {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    },
+    write(value) {
+      try {
+        if (value === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, value);
+      } catch {
+        // Zie de toelichting hierboven.
+      }
+    },
+  };
+}
+
 // Eenvoudige, voldoende-unieke id zonder externe afhankelijkheid.
 export function makeId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;

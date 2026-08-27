@@ -90,7 +90,11 @@ export function Results({ result, profile, onRetry, onHome, onShowProgress, onSh
       </div>
 
       <div className="footer-actions">
-        <button className="primary" onClick={onRetry}>Nog een keer oefenen</button>
+        {/* De knop herhaalt dezelfde modus, dus het label moet dat ook zeggen:
+            na een test begin je geen oefensessie. */}
+        <button className="primary" onClick={onRetry}>
+          {result.mode === 'test' ? 'Nog een keer testen' : 'Nog een keer oefenen'}
+        </button>
         <button className="btn" onClick={onShowLeaderboard}>
           <Trophy size={18} /> Ranglijst
         </button>

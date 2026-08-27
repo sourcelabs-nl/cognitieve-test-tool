@@ -21,7 +21,7 @@ export function PwaUpdater() {
   if (!offlineReady && !needRefresh) return null;
 
   return (
-    <div className="pwa-toast" role="alert">
+    <div className="toast toast-bottom pwa-toast" role="alert">
       {needRefresh ? (
         <>
           <span>Er is een nieuwe versie.</span>

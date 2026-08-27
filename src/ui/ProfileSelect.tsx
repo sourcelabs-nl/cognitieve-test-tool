@@ -88,12 +88,17 @@ export function ProfileSelect({ onSelect, onShowChangelog }: Props) {
         </button>
       </div>
 
-      <div className="transfer">
+      <div className="footer-actions transfer">
         <button className="btn" onClick={downloadExport}>
           <Download size={18} /> Exporteren
         </button>
         <button className="btn" onClick={() => fileInput.current?.click()}>
           <Upload size={18} /> Importeren
+        </button>
+        {/* De changelog verschijnt vanzelf bij een nieuwe versie, maar is daarna
+            weg. Hier blijft hij bereikbaar voor wie iets wil nalezen. */}
+        <button className="btn" onClick={onShowChangelog}>
+          <Sparkles size={18} /> Wat is nieuw?
         </button>
         <input
           ref={fileInput}
@@ -108,14 +113,6 @@ export function ProfileSelect({ onSelect, onShowChangelog }: Props) {
         />
       </div>
       {message && <p className="muted">{message}</p>}
-
-      {/* De changelog verschijnt vanzelf bij een nieuwe versie, maar is daarna
-          weg. Hier blijft hij bereikbaar voor wie iets wil nalezen. */}
-      <div className="footer-actions">
-        <button className="btn" onClick={onShowChangelog}>
-          <Sparkles size={18} /> Wat is nieuw?
-        </button>
-      </div>
     </section>
   );
 }
