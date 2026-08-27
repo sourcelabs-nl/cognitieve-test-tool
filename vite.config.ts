@@ -9,6 +9,17 @@ const base = process.env.VITE_BASE ?? '/'
 // https://vite.dev/config/
 export default defineConfig({
   base,
+  // Niet de standaardpoort 5173: die is op deze machine van een andere
+  // applicatie. `strictPort` laat de dev-server falen in plaats van stilletjes
+  // een andere poort te pakken, zodat je meteen ziet dat er iets in de weg zit.
+  server: {
+    port: 5199,
+    strictPort: true,
+  },
+  preview: {
+    port: 5199,
+    strictPort: true,
+  },
   plugins: [
     react(),
     VitePWA({
