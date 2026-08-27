@@ -26,7 +26,20 @@ const ALL_FAMILIES: LetterFamily[] = [
   'pairsChanging',
   'doublingStep',
   'primePositions',
-  'reverseAlphabet',
+  'fibStep',
+];
+
+// Families met een enkel spoor: de letters volgen elkaar op met sprongen die
+// kleiner zijn dan een half alfabet, dus de getoonde posities zijn uit de rij
+// zelf terug te rekenen.
+const SINGLE_TRACK_FAMILIES: LetterFamily[] = [
+  'step',
+  'changingStep',
+  'alternating',
+  'zigzag',
+  'cycleThree',
+  'positionStep',
+  'doublingStep',
   'fibStep',
 ];
 
@@ -51,6 +64,10 @@ function forwardDiffs(positions: number[]): number[] {
 // generator kleiner zijn dan 13, wat voor alle families geldt.
 function sdiff(a: number, b: number): number {
   return ((((b - a + 13) % 26) + 26) % 26) - 13;
+}
+
+function signedDiffs(positions: number[]): number[] {
+  return positions.slice(1).map((p, i) => sdiff(positions[i], p));
 }
 
 function normalise(index: number): number {
@@ -99,15 +116,18 @@ function expectedAnswer(series: LetterSeries): string {
     return letterAt(last + diffs[0]);
   }
 
-  if (family === 'changingStep' || family === 'fibStep') {
-    const diffs = forwardDiffs(p);
-    if (family === 'changingStep') {
-      // Constant tweede verschil.
-      const second = diffs.slice(1).map((d, i) => d - diffs[i]);
-      for (const d of second) expect(d).toBe(second[0]);
-      return letterAt(last + diffs[3] + second[0]);
-    }
+  if (family === 'changingStep') {
+    // Constant tweede verschil. De stappen worden met teken gelezen, want een
+    // stap die kleiner wordt kan halverwege de reeks van richting kantelen.
+    const diffs = signedDiffs(p);
+    const second = diffs.slice(1).map((d, i) => d - diffs[i]);
+    for (const d of second) expect(d).toBe(second[0]);
+    return letterAt(last + diffs[3] + second[0]);
+  }
+
+  if (family === 'fibStep') {
     // Elke stap is de som van de twee vorige stappen.
+    const diffs = forwardDiffs(p);
     expect(diffs[2]).toBe(diffs[0] + diffs[1]);
     expect(diffs[3]).toBe(diffs[1] + diffs[2]);
     return letterAt(last + diffs[2] + diffs[3]);
@@ -126,15 +146,6 @@ function expectedAnswer(series: LetterSeries): string {
     expect(start).toBeGreaterThanOrEqual(0);
     values.forEach((value, i) => expect(value).toBe(PRIMES[start + i]));
     return letterAt(PRIMES[start + 5] - 1);
-  }
-
-  if (family === 'reverseAlphabet') {
-    // De plaatsen geteld vanaf Z (Z=1, ... A=26) zijn opeenvolgende priemgetallen.
-    const fromZ = p.map((position) => 26 - position);
-    const start = PRIMES.indexOf(fromZ[0]);
-    expect(start).toBeGreaterThanOrEqual(0);
-    fromZ.forEach((value, i) => expect(value).toBe(PRIMES[start + i]));
-    return letterAt(26 - PRIMES[start + 5]);
   }
 
   if (family === 'alternating' || family === 'zigzag') {
@@ -156,7 +167,7 @@ function expectedAnswer(series: LetterSeries): string {
 
   if (family === 'positionStep') {
     // De n-de sprong is n keer de eerste sprong en wisselt van richting.
-    const diffs = p.slice(1).map((position, i) => sdiff(p[i], position));
+    const diffs = signedDiffs(p);
     const unit = diffs[0];
     expect(unit).toBeGreaterThan(0);
     diffs.forEach((d, i) => expect(d).toBe((i % 2 === 0 ? 1 : -1) * (i + 1) * unit));
@@ -218,7 +229,7 @@ describe('letterpatronen-generator', () => {
   });
 
   it('elk niveau biedt meerdere families (variatie tegen herhaling)', () => {
-    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 8, 6: 9 };
+    const minimum: Record<number, number> = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 8, 6: 8 };
     for (let level = 1; level <= MAX_LEVEL; level++) {
       const seen = new Set<LetterFamily>();
       for (let i = 0; i < 500; i++) seen.add(buildLetterSeries(level).family);
@@ -233,6 +244,29 @@ describe('letterpatronen-generator', () => {
       for (let i = 0; i < 300; i++) {
         const series = buildLetterSeries(level);
         expect(series.explanation).not.toContain('na Z begint het alfabet');
+      }
+    }
+  });
+
+  it('de getoonde reeks slaat nooit zelf om van Z naar A', () => {
+    // Alleen het antwoord mag voorbij Z vallen. Slaat de getoonde rij zelf om,
+    // dan spreken de plaatsen de sprongen tegen (A, C, H, P, A leest als
+    // "+2, +5, +8, -15") en is de opgave niet meer op te lossen.
+    for (let level = 1; level <= MAX_LEVEL; level++) {
+      for (let i = 0; i < 500; i++) {
+        const series = buildLetterSeries(level);
+        if (!SINGLE_TRACK_FAMILIES.includes(series.family)) continue;
+        // De rij vanaf de eerste letter met de sprongen zelf doorrekenen: bij een
+        // omslag loopt die reconstructie buiten A..Z.
+        const positions = series.tokens.map(idx);
+        let position = positions[0];
+        for (const step of signedDiffs(positions)) {
+          position += step;
+          expect(position, `${series.family}: ${series.tokens.join(', ')}`).toBeGreaterThanOrEqual(
+            0,
+          );
+          expect(position, `${series.family}: ${series.tokens.join(', ')}`).toBeLessThanOrEqual(25);
+        }
       }
     }
   });

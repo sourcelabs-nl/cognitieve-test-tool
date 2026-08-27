@@ -226,14 +226,16 @@ Ook de letter-generator werkt met families (zie `generators/letters.ts`, `Letter
 - L2: grotere constante stap, oplopende stap, twee afwisselende stappen.
 - L3: veranderende stap (groter/kleiner), grotere afwisselende stappen, twee verweven reeksen, letterparen met grotere sprong.
 - L4: sterk oplopende stap, zigzag (vooruit/achteruit), verweven met een teruglopende reeks, reeks vanaf het begin verweven met een reeks vanaf het eind van het alfabet, paren waarvan de letters uit elkaar lopen.
-- L5: stap volgens Fibonacci, drie verweven reeksen, zigzag met netto achterwaartse drift, sterk oplopende stap, verweving en spiegeling met grotere stappen, een cyclus van drie sprongen (`cycleThree`), en een sprong die van de plek in de reeks afhangt en van richting wisselt (`positionStep`).
-- L6: plaatsen in het alfabet die opeenvolgende priemgetallen zijn, sprong die verdubbelt, drie verweven reeksen met grotere stappen waarvan er een terugloopt, fibonacci-stap met grotere beginstappen, paren waarvan de eerste letter versnelt en de tweede een vaste stap houdt, spiegeling met grote stappen, `cycleThree` en `positionStep` met grotere waarden, plus `reverseAlphabet`.
+- L5: stap volgens Fibonacci, drie verweven reeksen, zigzag met netto achterwaartse drift, stap die zo snel kleiner wordt dat de reeks halverwege van richting kantelt, verweving en spiegeling met grotere stappen, een cyclus van drie sprongen (`cycleThree`), en een sprong die van de plek in de reeks afhangt en van richting wisselt (`positionStep`).
+- L6: plaatsen in het alfabet die opeenvolgende priemgetallen zijn, sprong die verdubbelt, drie verweven reeksen met grotere stappen waarvan er een terugloopt, fibonacci-stap met grotere beginstappen, paren waarvan de eerste letter versnelt en de tweede een vaste stap houdt, spiegeling met grote stappen, plus `cycleThree` en `positionStep` met grotere waarden.
 
-`reverseAlphabet` telt de plaatsen vanaf de achterkant (Z=1 ... A=26) en zet daar opeenvolgende priemgetallen neer. Bewust waardegebonden en niet een nette rekenregel: bij een rekenregel vanaf Z is de reeks net zo goed vanaf A op te lossen en voegt de omkering niets toe. De uitleg noemt de telrichting met een voorbeeld.
+Het omgekeerde alfabet (de plaatsen vanaf Z tellen, Z=1 ... A=26, en daar priemgetallen op zetten) is bewust geen familie. Die opgave vraagt twee vondsten tegelijk, waarvan de eerste (andersom tellen) nergens uit de rij af te leiden is: vanaf A geteld is er simpelweg geen patroon te zien. Dat maakt hem niet moeilijk maar een gokje.
 
 Net als bij de cijferpatronen wisselt bij `interwovenPair`, `interwovenTriple` en `mirrorPair` welke reeks gevraagd wordt; de gevraagde reeks toont altijd drie letters, dus de lengte van de rij bepaalt eenduidig welke reeks het vraagteken voortzet.
 
 Een reeks wordt waar mogelijk zo in het alfabet gelegd dat er geen omslag van Z naar A nodig is. Op niveau 1 en 2 past dat altijd; komt een omslag op hogere niveaus toch voor, dan wijst de uitleg de gebruiker erop.
+
+**De getoonde rij slaat nooit zelf om; alleen het antwoord mag voorbij Z vallen.** Wrapt de rij zelf, dan spreken de plaatsen in de uitleg de sprongen tegen: `A, C, H, P, A` (stap +3 per keer) leest vanaf A geteld als +2, +5, +8, -15 en is dan niet meer op te lossen. `fromOffsets` legt de reeks daarom zo neer dat in ieder geval de getoonde letters passen, en `strategiesByLevel` kiest per familie waarden die daarbinnen blijven: bij `changingStep` moet de som van de vijf stappen (`5 x firstStep + 10 x increment`) binnen 26 letters passen. Met een oplopende stap groter dan +2 kan dat niet, dus kantelt de stap op niveau 5 juist van richting in plaats van harder op te lopen. `__tests__/letters.test.ts` rekent de rij per item terug en bewaakt dit.
 
 ## Eenduidigheid bij odd-one-out
 

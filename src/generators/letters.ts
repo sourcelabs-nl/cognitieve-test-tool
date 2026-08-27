@@ -54,7 +54,6 @@ export type LetterFamily =
   | 'pairsChanging' // letterparen waarvan de eerste letter versnelt
   | 'doublingStep' // stap verdubbelt elke keer
   | 'primePositions' // plaatsen in het alfabet zijn opeenvolgende priemgetallen
-  | 'reverseAlphabet' // de plaatsen worden vanaf Z geteld
   | 'fibStep'; // stap is de som van de twee vorige stappen
 // De vraagvorm "welke hoort niet in de rij" staat hier bewust niet bij: dat is
 // geen patroonfamilie maar een vraagvorm (zie ItemForm), en de rij eronder is
@@ -124,8 +123,12 @@ interface OffsetPattern {
   hint: (tokens: string[]) => string;
 }
 
-// Legt een patroon zo in het alfabet dat er geen omslag nodig is. Past het
-// patroon niet binnen 26 letters, dan begint het op A en loopt het door.
+// Legt een patroon zo in het alfabet dat er geen omslag nodig is. Lukt dat niet
+// voor de hele reeks, dan krijgen in ieder geval de getoonde letters de ruimte:
+// slaat de rij zelf om van Z naar A, dan spreken de plaatsen in de uitleg de
+// sprongen tegen (A, C, H, P, A leest als "+2, +5, +8, -15") en is de opgave
+// niet meer op te lossen. Dat het antwoord voorbij Z valt is wel te volgen; de
+// uitleg wijst daarop.
 function fromOffsets({
   family,
   offsets,
@@ -133,10 +136,14 @@ function fromOffsets({
   describe,
   hint,
 }: OffsetPattern): LetterSeries {
+  const place = (values: number[]): number => {
+    const min = Math.min(...values);
+    const span = Math.max(...values) - min;
+    return span > 25 ? -min : randInt(0, 25 - span) - min;
+  };
   const all = [...offsets, answerOffset];
-  const min = Math.min(...all);
-  const span = Math.max(...all) - min;
-  const base = span > 25 ? -min : randInt(0, 25 - span) - min;
+  const base =
+    Math.max(...all) - Math.min(...all) <= 25 ? place(all) : place(offsets);
   return letterSeries({
     family,
     positions: offsets.map((o) => o + base),
@@ -166,6 +173,12 @@ function constantStep(step: number): OffsetPattern {
 }
 
 // Stap die per keer met `increment` verandert (negatief: de stap wordt kleiner).
+//
+// De vijf stappen tellen op tot `5 * firstStep + 10 * increment`; die som moet
+// binnen 26 letters passen, anders slaat de getoonde rij om van Z naar A en
+// klopt de reeks visueel niet meer met de sprongen. De aanroepers in
+// `strategiesByLevel` houden zich daaraan; met een oplopende stap groter dan +2
+// is dat niet te doen, dus daarboven kantelt de stap juist van richting.
 function changingStep(firstStep: number, increment: number): OffsetPattern {
   const offsets = [0];
   for (let i = 0; i < 4; i++) offsets.push(offsets[i] + firstStep + i * increment);
@@ -402,29 +415,11 @@ function primePositions(): LetterSeries {
   });
 }
 
-// Omgekeerd alfabet: de plaatsen worden niet vanaf A geteld maar vanaf Z
-// (Z=1, Y=2, ... A=26), en in die telling zijn het opeenvolgende priemgetallen.
-// Vanaf A geteld levert dat geen net patroon op, dus de gebruiker moet echt op
-// het idee komen om andersom te tellen. Zonder heldere uitleg achteraf is dit
-// een gemene opgave, daarom noemt de uitleg de telling met een voorbeeld.
-function reverseAlphabetPrimes(): LetterSeries {
-  const start = randInt(0, PRIME_POSITIONS.length - 6);
-  const values = PRIME_POSITIONS.slice(start, start + 6);
-  // Plaats 1 vanaf Z is Z zelf (index 25), plaats 26 is A (index 0).
-  const toIndex = (fromZ: number): number => 26 - fromZ;
-  const shownFromZ = values.slice(0, 5);
-  return letterSeries({
-    family: 'reverseAlphabet',
-    positions: shownFromZ.map(toIndex),
-    answerIndex: toIndex(values[5]),
-    describe: (tokens, answer) =>
-      `Tel de plaatsen niet vanaf A maar vanaf Z: Z=1, Y=2, X=3, ... A=26. In die telling staan hier ${tokens
-        .map((t, i) => `${t}=${shownFromZ[i]}`)
-        .join(', ')}, en dat zijn opeenvolgende priemgetallen. Het priemgetal na ${values[4]} is ${values[5]}, en de ${values[5]}e letter vanaf Z is ${answer}.`,
-    hint: (tokens) =>
-      `Vanaf A geteld leveren de plaatsen (${positionList(tokens)}) geen net patroon op. Probeer eens vanaf de andere kant te tellen: Z is dan de eerste letter, Y de tweede, en zo verder. Die getallen vormen wel een bekend rijtje.`,
-  });
-}
+// Het omgekeerde alfabet (de plaatsen vanaf Z tellen, Z=1 ... A=26, en daar
+// priemgetallen op zetten) is bewust geen familie. Die opgave vraagt twee
+// vondsten tegelijk, waarvan de eerste (andersom tellen) nergens uit de rij af
+// te leiden is: vanaf A geteld is er simpelweg geen patroon te zien. Dat maakt
+// hem niet moeilijk maar een gokje, en dat hoort ook op niveau 6 niet.
 
 interface PairOptions {
   first: number; // positie van de eerste letter van het eerste paar
@@ -594,9 +589,10 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
   3: [
     () => fromOffsets(changingStep(randInt(2, 3), 1)),
     () => {
-      // Stap die kleiner wordt maar positief blijft.
+      // Stap die kleiner wordt maar positief blijft. De ondergrens houdt de
+      // laatste stap positief, de bovengrens houdt de hele reeks binnen A..Z.
       const decrement = randInt(1, 2);
-      return fromOffsets(changingStep(randInt(4 * decrement + 1, 4 * decrement + 3), -decrement));
+      return fromOffsets(changingStep(randInt(4 * decrement + 1, 5 + 2 * decrement), -decrement));
     },
     () => fromOffsets(twoStepCycle(randInt(2, 4), randInt(5, 7), 'alternating')),
     () => {
@@ -623,7 +619,10 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
     () => fromOffsets(interwovenTriple({ stepMin: 2, stepMax: 3, backwards: false })),
     () => fromOffsets(twoStepCycle(randInt(2, 4), -randInt(5, 8), 'zigzag')),
     () => fromOffsets(interwovenPair(randInt(4, 6), randInt(14, 20), -randInt(4, 6))),
-    () => fromOffsets(changingStep(randInt(1, 2), 3)), // sterk oplopende stap
+    // Stap die zo snel kleiner wordt dat de reeks halverwege van richting
+    // kantelt: eerst een grote sprong vooruit, daarna terug. Zwaarder dan de
+    // oplopende stap van niveau 4, en de rij blijft binnen A..Z.
+    () => fromOffsets(changingStep(randInt(7, 8), -3)),
     () => mirrorPair(2, 4),
     () => fromOffsets(threeStepCycle(randInt(1, 3), randInt(4, 6), -randInt(1, 3))),
     () => fromOffsets(positionStep(randInt(1, 2))),
@@ -632,7 +631,6 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
   // waarbij meer dan twee sporen tegelijk gevolgd moeten worden.
   6: [
     primePositions,
-    reverseAlphabetPrimes,
     () => fromOffsets(doublingStep()),
     () => fromOffsets(interwovenTriple({ stepMin: 3, stepMax: 5, backwards: true })),
     () => {

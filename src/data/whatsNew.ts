@@ -26,6 +26,13 @@ export interface Release {
 
 export const releases: Release[] = [
   {
+    version: '1.2.4',
+    date: '2026-08-27',
+    items: [
+      'Twee soorten letteropgaven die vergezocht waren, zijn vervangen: je krijgt geen opgaven meer die je alleen met een gok kunt oplossen.',
+    ],
+  },
+  {
     version: '1.2.3',
     date: '2026-08-27',
     items: [
