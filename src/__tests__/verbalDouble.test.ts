@@ -5,6 +5,7 @@ import {
   verbalDoubleBank,
   resetVerbalHistory,
   resetVerbalDoubleHistory,
+  NB,
 } from '../generators/verbal';
 
 // Verwachte opbouw van de bank: het zwaartepunt ligt hoog, want een dubbele
@@ -69,7 +70,7 @@ describe('dubbele woordrelaties-bank', () => {
         expect(item.form).toBe('verbalDouble');
         expect(item.options).toHaveLength(4);
         expect(item.options[item.correctIndex]).toContain(' : ');
-        expect(item.prompt).toContain('? : ');
+        expect(item.prompt).toContain(`?${NB}:${NB}`);
         expect(item.explanation.length).toBeGreaterThan(0);
       }
     }

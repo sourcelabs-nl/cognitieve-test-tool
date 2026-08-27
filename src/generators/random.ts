@@ -4,6 +4,15 @@ export function randInt(min: number, max: number): number {
   return min + Math.floor(Math.random() * (max - min + 1));
 }
 
+// Trekt een getal uit het bereik dat niet gelijk is aan `not`. Hoort hier thuis
+// en niet in een generator: beide generators gebruiken hem, en een kopie per
+// generator zou buiten bereik vallen zodra we het loten hier zouden seeden.
+export function randIntExcept(min: number, max: number, not: number): number {
+  let value = randInt(min, max);
+  while (value === not) value = randInt(min, max);
+  return value;
+}
+
 export function pick<T>(items: readonly T[]): T {
   return items[randInt(0, items.length - 1)];
 }

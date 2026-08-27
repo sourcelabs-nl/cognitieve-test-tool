@@ -8,9 +8,9 @@ import {
   type LetterSeries,
 } from '../generators/letters';
 
-// De families die `buildLetterSeries` kan opleveren. De familie 'oddOne' staat
-// er bewust niet bij: die vraagvorm heeft een eigen bouwer en een eigen test
-// (letterOddOne.test.ts).
+// De families die `buildLetterSeries` kan opleveren. De vraagvorm "welke hoort
+// niet in de rij" heeft een eigen bouwer en een eigen test
+// (letterOddOne.test.ts); die rijen zijn op dezelfde families gebouwd.
 const ALL_FAMILIES: LetterFamily[] = [
   'step',
   'changingStep',

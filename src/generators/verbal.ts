@@ -6,7 +6,8 @@
 //
 // Niet on-the-fly genereren; kwaliteit is handmatig geborgd in de JSON-banken.
 
-import { MAX_LEVEL, MIN_LEVEL, type Item } from '../engine/types';
+import { MAX_LEVEL, type Item } from '../engine/types';
+import { clampLevel } from '../engine/levels';
 import { shuffle } from './random';
 import { STRATEGY_HINTS } from './hints';
 import bank from '../data/verbal.json';
@@ -112,6 +113,17 @@ export function verbalDoubleHintStep(entry: VerbalDoubleEntry): string {
   return `Er staan maar twee woorden vast: ${entry.b} en ${entry.c}. Bedenk eerst welke soort verbinding daartussen zou kunnen bestaan. Vul daarna elk paar op de plekken van de vraagtekens in en lees de hele regel voor jezelf na. Streep elk paar weg zodra een van beide helften niet klopt.`;
 }
 
+// Een analogie leest als twee helften rond het "=" teken. Met gewone spaties
+// mag de regel overal afbreken, en dan belandt er op een smal scherm een los
+// vraagteken of een los woord op de volgende regel. Harde spaties binnen elke
+// helft laten de regel alleen bij het "=" breken, dus blijft "censuur : handel"
+// altijd bij elkaar. Exporteerbaar zodat de tests dezelfde spatie gebruiken.
+export const NB = '\u00A0';
+
+function analogyLine(left: string, right: string): string {
+  return `${left.replace(/ : /g, `${NB}:${NB}`)} = ${right.replace(/ : /g, `${NB}:${NB}`)}`;
+}
+
 let counter = 0;
 
 function generateVerbalSingle(level: number): Item {
@@ -127,7 +139,7 @@ function generateVerbalSingle(level: number): Item {
     category: 'verbal',
     form: 'verbalSingle',
     level: entry.level,
-    prompt: `Welk woord past op de plek van het vraagteken?\n\n${entry.a} : ${entry.b} = ${entry.c} : ?`,
+    prompt: `Welk woord past op de plek van het vraagteken?\n\n${analogyLine(`${entry.a} : ${entry.b}`, `${entry.c} : ?`)}`,
     options,
     correctIndex: options.indexOf(correctValue),
     explanation: entry.explanation,
@@ -147,7 +159,7 @@ export function generateVerbalDouble(level: number): Item {
     category: 'verbal',
     form: 'verbalDouble',
     level: entry.level,
-    prompt: `Welke twee woorden passen op de plekken van de vraagtekens?\n\n? : ${entry.b} = ${entry.c} : ?`,
+    prompt: `Welke twee woorden passen op de plekken van de vraagtekens?\n\n${analogyLine(`? : ${entry.b}`, `${entry.c} : ?`)}`,
     options,
     correctIndex: options.indexOf(`${correctPair.a} : ${correctPair.d}`),
     explanation: entry.explanation,
@@ -156,7 +168,7 @@ export function generateVerbalDouble(level: number): Item {
 }
 
 export function generateVerbal(level: number): Item {
-  const clamped = Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
+  const clamped = clampLevel(level);
   const wantsDouble = Math.random() < DOUBLE_CHANCE[clamped];
   return wantsDouble ? generateVerbalDouble(clamped) : generateVerbalSingle(clamped);
 }

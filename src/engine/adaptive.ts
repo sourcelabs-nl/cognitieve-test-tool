@@ -14,6 +14,7 @@ import {
   type SessionResult,
   type SessionState,
 } from './types';
+import { clampLevel } from './levels';
 
 export const INITIAL_ESTIMATE = 2.5;
 // De stap schaalt mee met de lengte van de schaal (1..6): met een kleinere
@@ -39,7 +40,7 @@ function clampEstimate(value: number): number {
 
 // Vertaalt de continue schatting naar een discreet generatie-niveau (1..6).
 export function levelForEstimate(estimate: number): number {
-  return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(estimate)));
+  return clampLevel(estimate);
 }
 
 // startEstimate maakt het mogelijk om een terugkerende gebruiker op het niveau

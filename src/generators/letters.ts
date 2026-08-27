@@ -18,9 +18,10 @@
 // aantal regels (drie stappen die zich herhalen, drie verweven reeksen) en aan
 // regels die niet met een vaste sprong te vangen zijn.
 
-import { MAX_LEVEL, MIN_LEVEL, type Item } from '../engine/types';
-import { randInt, pick, shuffle, buildOptions } from './random';
-import { stepLabel } from './format';
+import { type Item } from '../engine/types';
+import { clampLevel } from '../engine/levels';
+import { randInt, randIntExcept, pick, shuffle, buildOptions } from './random';
+import { ORDINALS, stepLabel } from './format';
 import { STRATEGY_HINTS } from './hints';
 
 const A = 65;
@@ -38,9 +39,6 @@ function mod26(value: number): number {
   return ((value % 26) + 26) % 26;
 }
 
-// Rangtelwoorden voor de uitleg; langer dan de langste rij die we tonen.
-const ORDINALS = ['1e', '2e', '3e', '4e', '5e', '6e', '7e', '8e', '9e', '10e', '11e', '12e'];
-
 export type LetterFamily =
   | 'step' // constante stap vooruit of achteruit
   | 'changingStep' // stap die groter of kleiner wordt
@@ -57,8 +55,10 @@ export type LetterFamily =
   | 'doublingStep' // stap verdubbelt elke keer
   | 'primePositions' // plaatsen in het alfabet zijn opeenvolgende priemgetallen
   | 'reverseAlphabet' // de plaatsen worden vanaf Z geteld
-  | 'fibStep' // stap is de som van de twee vorige stappen
-  | 'oddOne'; // welke hoort niet in de rij (eigen bouwer, zie buildLetterOddOne)
+  | 'fibStep'; // stap is de som van de twee vorige stappen
+// De vraagvorm "welke hoort niet in de rij" staat hier bewust niet bij: dat is
+// geen patroonfamilie maar een vraagvorm (zie ItemForm), en de rij eronder is
+// wel op een van bovenstaande families gebouwd.
 
 export interface LetterSeries {
   tokens: string[]; // getoonde reeks; een token is een of twee letters
@@ -74,13 +74,6 @@ export interface LetterSeries {
 // Dat omzetten is bij letterreeksen bijna altijd de eerste nuttige stap.
 function positionList(tokens: string[]): string {
   return tokens.map((t) => `${t}=${indexOfLetter(t) + 1}`).join(', ');
-}
-
-// Trekt een getal uit het bereik dat niet gelijk is aan `not`.
-function randIntExcept(min: number, max: number, not: number): number {
-  let value = randInt(min, max);
-  while (value === not) value = randInt(min, max);
-  return value;
 }
 
 // Zet een rij stappen om naar posities, beginnend bij 0.
@@ -154,6 +147,11 @@ function fromOffsets({
 }
 
 // --- Families ---
+
+// Welke van twee verweven reeksen gevraagd wordt. Standaard willekeurig, net
+// als bij de cijferpatronen; een niveau kan het nog steeds vastzetten door de
+// keuze mee te geven.
+const askSide = (): 'A' | 'B' => pick(['A', 'B'] as const);
 
 function constantStep(step: number): OffsetPattern {
   return {
@@ -253,8 +251,9 @@ function interwovenPair(
   stepA: number,
   gap: number,
   stepB: number,
-  ask: 'A' | 'B',
+  wanted?: 'A' | 'B',
 ): OffsetPattern {
+  const ask = wanted ?? askSide();
   const posA = (i: number): number => i * stepA;
   const posB = (i: number): number => gap + i * stepB;
   const shown = [posA(0), posB(0), posA(1), posB(1), posA(2), posB(2)];
@@ -286,13 +285,14 @@ interface TripleOptions {
   stepMin: number; // ondergrens voor de stap van de gevraagde reeks
   stepMax: number;
   backwards: boolean; // laat een van de andere reeksen teruglopen
-  ask: 0 | 1 | 2; // welke van de drie reeksen wordt gevraagd
+  ask?: 0 | 1 | 2; // welke van de drie reeksen wordt gevraagd; standaard willekeurig
 }
 
 // Drie verweven reeksen: elke derde letter hoort bij dezelfde reeks. Ook hier
 // wisselt de gevraagde reeks; de rij wordt daarvoor een of twee letters langer
 // getoond, zodat de gevraagde reeks altijd drie letters laat zien.
-function interwovenTriple({ stepMin, stepMax, backwards, ask }: TripleOptions): OffsetPattern {
+function interwovenTriple({ stepMin, stepMax, backwards, ask: wanted }: TripleOptions): OffsetPattern {
+  const ask = wanted ?? pick([0, 1, 2] as const);
   const steps = [randInt(1, 3), randInt(1, 3), randInt(1, 3)];
   steps[ask] = randInt(stepMin, stepMax);
   // Een van de niet-gevraagde reeksen loopt terug; dat maakt de opgave zwaarder
@@ -322,7 +322,8 @@ function interwovenTriple({ stepMin, stepMax, backwards, ask }: TripleOptions): 
 
 // Een reeks die vooraan in het alfabet begint, verweven met een reeks die
 // achteraan begint en terugloopt. Ook hier wisselt de gevraagde reeks.
-function mirrorPair(forwardMin: number, forwardMax: number, ask: 'A' | 'B'): LetterSeries {
+function mirrorPair(forwardMin: number, forwardMax: number, wanted?: 'A' | 'B'): LetterSeries {
+  const ask = wanted ?? askSide();
   const stepForward = randInt(forwardMin, forwardMax);
   const stepBack = randInt(1, 3);
   const startForward = randInt(0, 2);
@@ -577,8 +578,6 @@ function fibonacciSteps(a: number, b: number): OffsetPattern {
 // Niveau 1 en 2 blijven toegankelijk als instap; vanaf niveau 3 lopen zowel het
 // aantal families als de zwaarte op.
 
-const askSide = (): 'A' | 'B' => pick(['A', 'B'] as const);
-
 const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
   1: [
     () => fromOffsets(constantStep(randInt(1, 4))),
@@ -602,9 +601,7 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
     () => fromOffsets(twoStepCycle(randInt(2, 4), randInt(5, 7), 'alternating')),
     () => {
       const stepA = randInt(2, 4);
-      return fromOffsets(
-        interwovenPair(stepA, randInt(9, 13), randIntExcept(2, 4, stepA), askSide()),
-      );
+      return fromOffsets(interwovenPair(stepA, randInt(9, 13), randIntExcept(2, 4, stepA)));
     },
     () => steppingPairs(3, 4, 2),
   ],
@@ -614,8 +611,8 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
       const up = randInt(3, 6);
       return fromOffsets(twoStepCycle(up, -randIntExcept(1, 4, up), 'zigzag'));
     },
-    () => fromOffsets(interwovenPair(randInt(2, 4), randInt(14, 20), -randInt(2, 4), askSide())),
-    () => mirrorPair(1, 3, askSide()),
+    () => fromOffsets(interwovenPair(randInt(2, 4), randInt(14, 20), -randInt(2, 4))),
+    () => mirrorPair(1, 3),
     divergingPairs,
   ],
   5: [
@@ -623,14 +620,11 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
       const [a, b] = pick(FIB_STEP_STARTS);
       return fromOffsets(fibonacciSteps(a, b));
     },
-    () =>
-      fromOffsets(
-        interwovenTriple({ stepMin: 2, stepMax: 3, backwards: false, ask: pick([0, 1, 2] as const) }),
-      ),
+    () => fromOffsets(interwovenTriple({ stepMin: 2, stepMax: 3, backwards: false })),
     () => fromOffsets(twoStepCycle(randInt(2, 4), -randInt(5, 8), 'zigzag')),
-    () => fromOffsets(interwovenPair(randInt(4, 6), randInt(14, 20), -randInt(4, 6), askSide())),
+    () => fromOffsets(interwovenPair(randInt(4, 6), randInt(14, 20), -randInt(4, 6))),
     () => fromOffsets(changingStep(randInt(1, 2), 3)), // sterk oplopende stap
-    () => mirrorPair(2, 4, askSide()),
+    () => mirrorPair(2, 4),
     () => fromOffsets(threeStepCycle(randInt(1, 3), randInt(4, 6), -randInt(1, 3))),
     () => fromOffsets(positionStep(randInt(1, 2))),
   ],
@@ -640,16 +634,13 @@ const strategiesByLevel: Record<number, (() => LetterSeries)[]> = {
     primePositions,
     reverseAlphabetPrimes,
     () => fromOffsets(doublingStep()),
-    () =>
-      fromOffsets(
-        interwovenTriple({ stepMin: 3, stepMax: 5, backwards: true, ask: pick([0, 1, 2] as const) }),
-      ),
+    () => fromOffsets(interwovenTriple({ stepMin: 3, stepMax: 5, backwards: true })),
     () => {
       const [a, b] = pick(FIB_STEP_STARTS_HARD);
       return fromOffsets(fibonacciSteps(a, b));
     },
     acceleratingPairs,
-    () => mirrorPair(4, 6, askSide()),
+    () => mirrorPair(4, 6),
     () => fromOffsets(threeStepCycle(randInt(2, 4), randInt(6, 8), -randInt(3, 5))),
     () => fromOffsets(positionStep(randInt(2, 3))),
   ],
@@ -735,6 +726,11 @@ function followsAnyRule(positions: number[]): boolean {
 // Geeft de enige plaats terug waarvan het vervangen de rij kloppend maakt, of
 // null wanneer dat er geen of meer dan een zijn (dan is de opgave niet
 // eenduidig en wordt de kandidaat verworpen).
+//
+// Zelfde contract als `repairSpots` in de cijfergenerator, bewust een eigen
+// implementatie: hier zijn er maar 26 mogelijke letters, dus alle vervangingen
+// uitproberen kan gewoon. Bij getallen kan dat niet en wordt de rij uit
+// ankervensters gereconstrueerd.
 function findUniqueBrokenIndex(positions: number[]): number | null {
   if (followsAnyRule(positions)) return null;
   let found = -1;
@@ -760,7 +756,6 @@ export interface LetterOddOne {
   distractors: string[]; // drie andere letters uit de getoonde rij
   explanation: string;
   hint: string;
-  family: LetterFamily; // altijd 'oddOne'
   baseFamily: LetterFamily; // de regel waarop de rij gebouwd is
   brokenIndex: number;
 }
@@ -919,7 +914,6 @@ function makeOddOne({ base, broken, delta, shiftRandomly }: OddOneAttempt): Lett
     distractors: shuffle(tokens.filter((_, i) => i !== broken)).slice(0, 3),
     explanation: `De rij volgt ${base.rule}. Volgens die regel hoort de rij ${correctTokens.join(', ')} te zijn. Op de ${ORDINALS[broken]} plaats staat ${answer} in plaats van ${correctTokens[broken]}, dus ${answer} hoort niet in de rij.`,
     hint: `Zet de letters om naar hun plaats in het alfabet: ${positionList(tokens)}. ${base.focus} Reken de rij daarna vanaf het begin zelf door en vergelijk letter voor letter met wat er staat.`,
-    family: 'oddOne',
     baseFamily: base.family,
     brokenIndex: broken,
   };
@@ -943,7 +937,7 @@ export function safeLetterOddOne(): LetterOddOne {
 
 // Bouwt een "welke hoort niet in de rij" voor niveau 3..6. Exporteerbaar voor tests.
 export function buildLetterOddOne(level: number): LetterOddOne {
-  const bases = oddOneBasesByLevel[Math.min(MAX_LEVEL, Math.max(3, clampLevel(level)))];
+  const bases = oddOneBasesByLevel[clampLevel(level, 3)];
   for (let attempt = 0; attempt < 80; attempt++) {
     const base = pick(bases)();
     const candidate = makeOddOne({
@@ -958,10 +952,6 @@ export function buildLetterOddOne(level: number): LetterOddOne {
     if (candidate) return candidate;
   }
   return safeLetterOddOne();
-}
-
-function clampLevel(level: number): number {
-  return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
 }
 
 // Vanaf niveau 3 is ongeveer een op de vijf letteritems een "welke hoort niet

@@ -13,7 +13,15 @@ export const LEVEL_LABELS: Record<number, string> = {
   6: 'hbo+ / wo',
 };
 
+// Maakt van een (mogelijk continue) schatting een heel niveau binnen de schaal.
+// De ondergrens is instelbaar: sommige vraagvormen bestaan pas vanaf niveau 3
+// (cijfermatrix, "welke hoort niet in de rij"), en die geven `min: 3` mee.
+// Let op: dit is bewust mét afronding. De continue schatting van de staircase
+// wordt elders zonder afronding geknipt, want daar gaat elke tiende mee.
+export function clampLevel(level: number, min: number = MIN_LEVEL): number {
+  return Math.min(MAX_LEVEL, Math.max(min, Math.round(level)));
+}
+
 export function levelLabel(level: number): string {
-  const clamped = Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
-  return LEVEL_LABELS[clamped];
+  return LEVEL_LABELS[clampLevel(level)];
 }

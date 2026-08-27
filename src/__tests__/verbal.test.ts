@@ -5,6 +5,7 @@ import {
   verbalBank,
   resetVerbalHistory,
   resetVerbalDoubleHistory,
+  NB,
 } from '../generators/verbal';
 
 describe('woordrelaties-bank', () => {
@@ -64,12 +65,15 @@ describe('woordrelaties-bank', () => {
     for (let level = 1; level <= MAX_LEVEL; level++) {
       for (let i = 0; i < 50; i++) {
         const item = generateVerbal(level);
+        // De opgaveregel gebruikt harde spaties rond de dubbele punt, zodat een
+        // helft van de analogie nooit over twee regels breekt (zie `NB` in
+        // generators/verbal.ts).
         if (item.form === 'verbalDouble') {
-          expect(item.prompt).toContain('? : ');
+          expect(item.prompt).toContain(`?${NB}:${NB}`);
           for (const option of item.options) expect(option).toContain(' : ');
         } else {
-          expect(item.prompt).not.toContain('? : ');
-          expect(item.prompt.endsWith(' : ?')).toBe(true);
+          expect(item.prompt).not.toContain(`?${NB}:${NB}`);
+          expect(item.prompt.endsWith(`${NB}:${NB}?`)).toBe(true);
           for (const option of item.options) expect(option).not.toContain(' : ');
         }
       }

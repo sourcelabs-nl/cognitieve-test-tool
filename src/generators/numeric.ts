@@ -13,9 +13,10 @@
 // De familie (family) van elke reeks maakt onafhankelijke validatie in de tests
 // mogelijk.
 
-import { MAX_LEVEL, MIN_LEVEL, type Item, type ItemForm } from '../engine/types';
-import { randInt, pick, shuffle, buildOptions } from './random';
-import { stepLabel } from './format';
+import { type Item, type ItemForm } from '../engine/types';
+import { clampLevel } from '../engine/levels';
+import { randInt, randIntExcept, pick, shuffle, buildOptions } from './random';
+import { ORDINALS, stepLabel } from './format';
 import { STRATEGY_HINTS } from './hints';
 
 export type NumericFamily =
@@ -62,13 +63,6 @@ function applied(from: number, step: number): string {
   return `${from} ${step < 0 ? '-' : '+'} ${Math.abs(step)} = ${from + step}`;
 }
 
-// Trekt een getal uit het bereik dat niet gelijk is aan `not`.
-function randIntExcept(min: number, max: number, not: number): number {
-  let value = randInt(min, max);
-  while (value === not) value = randInt(min, max);
-  return value;
-}
-
 // Opeenvolgende verschillen van een rij.
 function differences(values: number[]): number[] {
   return values.slice(1).map((v, i) => v - values[i]);
@@ -78,9 +72,6 @@ function differences(values: number[]): number[] {
 function diffList(terms: number[]): string {
   return differences(terms).map(stepLabel).join(', ');
 }
-
-// Nederlandse rangwoorden voor rijen, kolommen en plekken in een rij.
-const ORDINALS = ['eerste', 'tweede', 'derde', 'vierde', 'vijfde', 'zesde', 'zevende'];
 
 // Schrijft een term met vaste verschuiving uit: "3^2 - 2", of "3^2" bij nul.
 function shifted(base: string, offset: number): string {
@@ -286,8 +277,8 @@ function interwoven({ startA, stepA, startB, stepB, ask }: InterwovenOptions): N
         : `${shared} Het gevraagde getal hoort bij de tweede reeks: ${applied(b[2], stepB)}.`,
     hint:
       which === 0
-        ? `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 1e, 3e en 5e positie: ${a[0]}, ${a[1]}, ${a[2]}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`
-        : `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 2e, 4e en 6e positie: ${b[0]}, ${b[1]}, ${b[2]}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`,
+        ? `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de eerste, derde en vijfde positie: ${a[0]}, ${a[1]}, ${a[2]}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`
+        : `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de tweede, vierde en zesde positie: ${b[0]}, ${b[1]}, ${b[2]}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`,
     family: 'interwoven',
     // De voortzetting van de andere reeks is hier de klassieke valkuil.
     distractors:
@@ -341,18 +332,20 @@ function interwoven3(o: Interwoven3Options): NumericSeries {
 }
 
 // Bouwt drie verweven reeksen met onderling verschillende stappen, zodat er
-// maar een lezing van de reeks mogelijk is.
-function interwoven3In(range: { startMin: number; startMax: number }): NumericSeries {
+// maar een lezing van de reeks mogelijk is. De twee stijgende reeksen beginnen
+// klein en de dalende hoog, zodat de drie sporen in de rij uit elkaar te houden
+// zijn.
+function interwoven3Small(): NumericSeries {
   const stepA = randInt(3, 9);
   const stepB = -randInt(3, 9);
   let stepC = randInt(2, 10);
   while (stepC === stepA) stepC = randInt(2, 10);
   return interwoven3({
-    startA: randInt(range.startMin, range.startMax),
+    startA: randInt(2, 12),
     stepA,
     startB: randInt(40, 80),
     stepB,
-    startC: randInt(range.startMin, range.startMax),
+    startC: randInt(2, 12),
     stepC,
   });
 }
@@ -383,8 +376,8 @@ function interwovenGeo(): NumericSeries {
         : `${shared} Het gevraagde getal hoort bij de tweede reeks: ${applied(b[2], stepB)}.`,
     hint:
       which === 0
-        ? `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 1e, 3e en 5e positie: ${a[0]}, ${a[1]}, ${a[2]}. Let op: die reeks heeft geen vaste stap, dus probeer daar te delen. Het gevraagde getal hoort bij die reeks.`
-        : `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de 2e, 4e en 6e positie: ${b[0]}, ${b[1]}, ${b[2]}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`,
+        ? `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de eerste, derde en vijfde positie: ${a[0]}, ${a[1]}, ${a[2]}. Let op: die reeks heeft geen vaste stap, dus probeer daar te delen. Het gevraagde getal hoort bij die reeks.`
+        : `Deze reeks springt heen en weer, want er staan twee reeksen door elkaar. Kijk alleen naar de tweede, vierde en zesde positie: ${b[0]}, ${b[1]}, ${b[2]}. Dat is een nette reeks op zichzelf, en het gevraagde getal hoort daarbij.`,
     family: 'interwovengeo',
     distractors:
       which === 0
@@ -953,7 +946,7 @@ const strategiesByLevel: Record<number, (() => NumericSeries)[]> = {
     tribonacci,
     fibMinus,
     products,
-    () => interwoven3In({ startMin: 2, startMax: 12 }),
+    interwoven3Small,
     () => powers(3), // machten van 3: het zwaarste hoofdrekenwerk, dus alleen hier
     () => geoDiff({ start: randInt(2, 9), firstDiff: randInt(2, 5), ratio: 3 }),
     () => recursiveIn({ startMin: 2, startMax: 4, multipliers: [3, 4], constants: [-9, -7, 7, 9] }),
@@ -971,10 +964,6 @@ export function buildNumericSeries(level: number): NumericSeries {
   const clamped = clampLevel(level);
   const strategies = strategiesByLevel[clamped];
   return pick(strategies)();
-}
-
-function clampLevel(level: number): number {
-  return Math.min(MAX_LEVEL, Math.max(MIN_LEVEL, Math.round(level)));
 }
 
 // --- Cijfermatrix: getallen in een raster van 3 bij 3 ---
@@ -1260,7 +1249,7 @@ const gridFamiliesByLevel: Record<number, (() => NumericGridPuzzle)[]> = {
 
 // Bouwt een cijfermatrix voor een gegeven niveau (3..6). Exporteerbaar voor tests.
 export function buildNumericGrid(level: number): NumericGridPuzzle {
-  const clamped = Math.min(MAX_LEVEL, Math.max(3, Math.round(level)));
+  const clamped = clampLevel(level, 3);
   return pick(gridFamiliesByLevel[clamped])();
 }
 
@@ -1648,6 +1637,13 @@ const ODD_RULES: OddRule[] = [
 // Alle plekken waarvan het vervangen van dat ene getal de rij weer kloppend
 // maakt, volgens welke van de bekende regels dan ook. De sentinel -1 betekent
 // dat de rij al klopt: dan is er helemaal geen vreemde eend.
+//
+// De letter-generator heeft in `findUniqueBrokenIndex` bewust een eigen
+// implementatie van hetzelfde contract. Letters leven in een eindig domein van
+// 26 posities en kunnen alle vervangingen simpelweg uitproberen; getallen zijn
+// oneindig en moeten de rij reconstrueren uit ankervensters. Een gedeelde
+// abstractie zou beide strategieen moeten dragen en meteen weer uit elkaar
+// vallen.
 function repairSpots(row: number[]): Set<number> {
   const spots = new Set<number>();
   for (const rule of ODD_RULES) {
@@ -1708,7 +1704,7 @@ function makeOddOne(
 // Bouwt een "welke hoort niet in de rij" voor een gegeven niveau (3..6).
 // Exporteerbaar voor tests.
 export function buildNumericOddOne(level: number): NumericOddOne {
-  const clamped = Math.min(MAX_LEVEL, Math.max(3, Math.round(level)));
+  const clamped = clampLevel(level, 3);
   const attempt = (rules: OddRule[]): NumericOddOne | null => {
     const rule = pick(rules);
     const { row: clean, ruleText } = rule.build();
